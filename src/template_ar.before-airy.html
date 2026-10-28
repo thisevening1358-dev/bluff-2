@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BLUFF Popup AR 3안</title>
+<meta name="description" content="BLUFF 팝업 BLUFF CASE FILE을 3D 모형으로 미리 둘러보는 페이지.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Noto+Sans+KR:wght@400;500;700;900&family=Roboto+Mono:wght@500&family=Roboto:ital,wght@0,500;0,900;1,900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0c0c0c; --paper: #fbfbfb; --stone: #bdbdb9; --mute: #8f8f8a;
+  --blue: #1f6fe5; --red: #e51212; --lime: #c6f21a;
+  --out: cubic-bezier(.16, 1, .3, 1);
+  --head: 80px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--ink); color: var(--paper); overflow: hidden; font-family: Roboto, "Noto Sans KR", sans-serif; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--red); color: var(--paper); }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 4px; }
+.kr { font-family: "Noto Sans KR", sans-serif; word-break: keep-all; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* the room the model stands in: one warm work light over a dark floor */
+.room { position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 60% at 58% 52%, rgba(255,236,206,.075), rgba(255,236,206,.02) 55%, rgba(0,0,0,0) 75%), var(--ink); }
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: .06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* ---------- header (same as Brand and Products) ---------- */
+header { position: fixed; top: 0; left: 0; right: 0; height: var(--head); z-index: 30; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 56px; }
+header .logo svg { width: 100px; height: 40px; display: block; }
+header nav { display: flex; gap: 48px; font: 500 15px/1 Roboto, sans-serif; letter-spacing: .01em; }
+header nav a { position: relative; color: rgba(251,251,251,.5); transition: color .3s ease; padding: 8px 0; }
+header nav a:hover, header nav a[aria-current] { color: var(--paper); }
+header nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor;
+  transform: scaleX(0); transform-origin: 0 50%; transition: transform .5s var(--out); }
+header nav a:hover::after, header nav a[aria-current]::after { transform: scaleX(1); }
+header .lang { justify-self: end; display: flex; gap: 10px; font: 500 12px/1 "Roboto Mono", monospace; letter-spacing: .1em; color: var(--mute); }
+header .lang b { color: var(--paper); font-weight: 500; }
+
+#site { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 1; display: block; opacity: 0; transition: opacity 1.4s ease; touch-action: none; }
+.ready #site { opacity: 1; }
+.labels { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+/* the copy keeps its own dark ground; the model slides away from it rather than under it */
+.scrim { position: fixed; z-index: 6; pointer-events: none; transition: opacity .8s ease; }
+.scrim.b { left: 0; right: 0; bottom: 0; height: 300px; background: linear-gradient(0deg, rgba(12,12,12,.96), rgba(12,12,12,.82) 38%, rgba(12,12,12,0)); }
+.scrim.l { left: 0; top: 0; bottom: 0; width: 46vw; background: linear-gradient(90deg, rgba(12,12,12,.9), rgba(12,12,12,.7) 45%, rgba(12,12,12,0)); }
+.scrim.r { right: 0; top: 0; bottom: 0; width: 46vw; opacity: 0; background: linear-gradient(270deg, rgba(12,12,12,.97), rgba(12,12,12,.9) 58%, rgba(12,12,12,0)); }
+.zoned .scrim.l { opacity: 0; } .zoned .scrim.r { opacity: 1; }
+
+/* ---------- labels standing on the model ---------- */
+.chip { position: absolute; left: 0; top: 0; pointer-events: auto; display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 12px 9px; border-radius: 4px;
+  background: var(--zc); color: var(--zt, var(--paper)); font: 700 15px/1 "Noto Sans KR", sans-serif; white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(0,0,0,.35); transition: opacity .4s ease, scale .3s var(--out); will-change: transform; }
+.chip i { font: 500 11px/1 "Roboto Mono", monospace; font-style: normal; letter-spacing: .08em; opacity: .75; }
+.chip:hover, .chip.hot { scale: 1.08; }
+.chip.flat { pointer-events: none; }
+.pin { position: absolute; left: 0; top: 0; pointer-events: auto; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--pc); color: var(--pt); font: 700 11px/1 "Roboto Mono", monospace; box-shadow: 0 6px 14px rgba(0,0,0,.45); transition: opacity .4s ease, scale .3s var(--out); will-change: transform; }
+.pin::after { content: ""; position: absolute; left: 50%; top: 100%; width: 2px; height: var(--stem, 24px); translate: -50% 0; background: var(--pc); opacity: .9; }
+.pin:hover, .pin.hot { scale: 1.18; }
+.chip, .pin { opacity: 0; visibility: hidden; }
+.chip.show, .pin.show { opacity: 1; visibility: visible; }
+
+/* ---------- intro, over the whole site ---------- */
+.intro { position: fixed; z-index: 10; left: 56px; top: calc(var(--head) + 5vh); width: min(36vw, 560px); transition: opacity .6s ease, translate .9s var(--out); }
+.zoned .intro { opacity: 0; translate: -24px 0; pointer-events: none; }
+.intro h1 { font: 900 clamp(56px, 5.2vw, 100px)/.92 Roboto, sans-serif; letter-spacing: -.045em; }
+.intro .claim { margin-top: 26px; font: 700 clamp(19px, 1.45vw, 26px)/1.4 "Noto Sans KR", sans-serif; }
+.intro .motto { margin-top: 10px; font: italic 400 clamp(16px, 1.1vw, 20px)/1.5 "Libre Baskerville", serif; color: var(--stone); }
+.intro .facts { margin-top: 36px; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 6px 44px; }
+.intro .facts dt { grid-row: 1; font: 500 13px/1.4 "Noto Sans KR", sans-serif; color: var(--mute); }
+.intro .facts dd { grid-row: 2; font: 500 19px/1.3 Roboto, "Noto Sans KR", sans-serif; }
+
+/* ---------- zone sheet, while inside one world ---------- */
+.zone { position: fixed; z-index: 10; right: 56px; top: calc(var(--head) + 3vh); bottom: 168px; width: min(30vw, 470px); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+  padding-right: 6px; scrollbar-width: thin; scrollbar-color: rgba(251,251,251,.2) transparent;
+  opacity: 0; translate: 24px 0; pointer-events: none; transition: opacity .5s ease, translate .9s var(--out); }
+.zoned .zone { opacity: 1; translate: 0 0; pointer-events: auto; transition-delay: .25s; }
+.zone .meta { display: flex; align-items: center; gap: 14px; font: 500 12px/1 "Roboto Mono", monospace; letter-spacing: .1em; color: var(--stone); }
+.zone .code { display: grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 4px; background: var(--zc); color: var(--zt, var(--paper)); font: 700 14px/1 "Roboto Mono", monospace; letter-spacing: .04em; }
+.zone h2 { margin-top: 20px; font: 900 clamp(48px, 4vw, 76px)/1 "Noto Sans KR", sans-serif; letter-spacing: -.04em; }
+.zone .lead { margin-top: 18px; max-width: 34ch; font-size: 16px; line-height: 1.75; color: var(--stone); }
+.zone h3 { margin-top: 34px; font: 500 13px/1 "Noto Sans KR", sans-serif; color: var(--mute); }
+.zone .spaces { margin-top: 14px; display: grid; grid-template-columns: 52px 1fr; gap: 12px 14px; }
+.zone .spaces dt { font: 500 12px/1.6 "Roboto Mono", monospace; color: var(--mute); }
+.zone .spaces dd b { display: block; font: 700 15px/1.4 Roboto, "Noto Sans KR", sans-serif; letter-spacing: .01em; }
+.zone .spaces dd span { display: block; margin-top: 2px; font-size: 14px; line-height: 1.55; color: var(--stone); }
+.zone ol { margin-top: 14px; padding: 0 14px; margin-left: -14px; margin-right: -14px; list-style: none; display: grid; gap: 6px; }
+.zone li { display: grid; grid-template-columns: 30px 1fr; gap: 14px; padding: 14px; margin: 0 -14px; border-radius: 6px; min-width: 0; transition: background-color .3s ease; }
+.zone li.hot { background: rgba(251,251,251,.07); }
+.zone li .dot { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--pc); color: var(--pt); font: 700 11px/1 "Roboto Mono", monospace; }
+.zone li b { font: 700 16px/1.35 "Noto Sans KR", sans-serif; }
+.zone li b small { margin-left: 8px; font: 500 11px/1 "Roboto Mono", monospace; letter-spacing: .08em; color: var(--mute); }
+.zone li p { margin-top: 6px; font-size: 14px; line-height: 1.6; color: var(--stone); }
+.zone li .tag { margin-top: 8px; font: 500 12px/1 "Noto Sans KR", sans-serif; color: var(--mute); }
+.zone li .tag em { font-style: normal; color: var(--paper); }
+
+/* ---------- the case file: one stamp per world seen ---------- */
+.case { position: fixed; z-index: 10; left: 56px; bottom: 150px; display: grid; grid-template-columns: auto auto; align-items: center; gap: 6px 22px; }
+.case .no { grid-column: 1 / -1; font: 500 12px/1 "Roboto Mono", monospace; letter-spacing: .14em; color: var(--mute); }
+.case .no b { color: var(--paper); font-weight: 500; }
+.stamps { display: flex; gap: 10px; }
+.stamp { position: relative; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: rgba(251,251,251,.06); color: var(--mute);
+  font: 700 14px/1 "Roboto Mono", monospace; text-align: center; }
+.stamp .ink { position: absolute; inset: 0; display: grid; place-content: center; gap: 3px; border-radius: 50%; background: var(--sc); color: var(--st, var(--paper));
+  font: 500 7.5px/1 "Roboto Mono", monospace; letter-spacing: .1em; opacity: 0; scale: 1.7; rotate: -14deg; }
+.stamp .ink b { font: italic 900 13px/1 Roboto, sans-serif; letter-spacing: -.01em; }
+.stamp.on .ink { opacity: .94; scale: 1; transition: opacity .18s ease, scale .32s cubic-bezier(.3, 1.6, .5, 1); box-shadow: 0 6px 16px rgba(0,0,0,.4); }
+.case .state { font: 500 14px/1.5 "Noto Sans KR", sans-serif; color: var(--stone); max-width: 17ch; }
+.case.closed .state { font: italic 900 22px/1.1 Roboto, sans-serif; color: var(--red); letter-spacing: -.01em; }
+
+/* ---------- the route: the U-shaped walk, in order ---------- */
+.route { position: fixed; z-index: 10; left: 56px; right: 56px; bottom: 34px; display: grid; grid-template-columns: .7fr repeat(5, 1fr); gap: 14px; }
+.route button { position: relative; padding-top: 18px; text-align: left; display: grid; gap: 7px; }
+.route button::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; border-radius: 2px; background: var(--zc, var(--paper)); opacity: .28; transform-origin: 0 50%; transition: opacity .3s ease; }
+.route button:hover::before, .route button.hot::before { opacity: .65; }
+.route button[aria-current]::before { opacity: 1; }
+.route .c { font: 500 11px/1 "Roboto Mono", monospace; letter-spacing: .12em; color: var(--mute); }
+.route .n { font: 700 18px/1.2 "Noto Sans KR", sans-serif; color: rgba(251,251,251,.72); transition: color .3s ease; }
+.route button:hover .n, .route button[aria-current] .n { color: var(--paper); }
+.route .s { font-size: 13px; color: var(--mute); }
+.hint { position: fixed; z-index: 10; right: 56px; bottom: 150px; font: 500 12px/1.6 "Noto Sans KR", sans-serif; color: var(--mute); text-align: right; transition: opacity .5s ease; }
+.zoned .hint { opacity: 0; }
+
+/* first frame: the copy settles in after the model */
+.intro > *, .case, .route, .hint { opacity: 0; translate: 0 10px; }
+.ready .intro > *, .ready .case, .ready .route, .ready .hint { opacity: 1; translate: 0 0; transition: opacity 1s ease, translate 1.1s var(--out); transition-delay: calc(.5s + var(--d, 0) * .1s); }
+.zoned .hint { opacity: 0; }
+.boot { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; pointer-events: none; font: 500 12px/1 "Roboto Mono", monospace; letter-spacing: .2em; color: var(--mute); transition: opacity .6s ease; }
+.ready .boot { opacity: 0; }
+.boot.error { color: var(--stone); font: 500 15px/1.7 "Noto Sans KR", sans-serif; letter-spacing: 0; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01s !important; transition-delay: 0s !important; }
+}
+</style>
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><symbol id="logo" viewBox="0 0 264.998 106" overflow="visible">{{LOGO_PATHS}}</symbol></defs>
+</svg>
+<div class="room" aria-hidden="true"></div>
+
+<header>
+  <a class="logo" href="BLUFF_3안_Brand.html" aria-label="BLUFF 브랜드 페이지"><svg viewBox="0 0 264.998 106"><use href="#logo" fill="#fbfbfb"/></svg></a>
+  <nav aria-label="Primary"><a href="BLUFF_3안_Brand.html">Brand</a><a href="BLUFF_3안_Products.html">Products</a><a href="#" aria-current="page">Popup AR</a></nav>
+  <p class="lang"><b>KR</b><span aria-hidden="true">/</span><span>EN</span></p>
+</header>
+
+<canvas id="site" aria-label="BLUFF CASE FILE 팝업 3D 모형. 드래그해서 돌려 보고, 아래 동선에서 현장을 고르세요."></canvas>
+<div class="labels" id="labels"></div>
+<div class="scrim l" aria-hidden="true"></div><div class="scrim r" aria-hidden="true"></div><div class="scrim b" aria-hidden="true"></div>
+<p class="boot" id="boot">LOADING CASE FILE</p>
+
+<section class="intro" aria-label="BLUFF CASE FILE">
+  <h1>BLUFF<br>CASE FILE.</h1>
+  <p class="claim" style="--d:1">세 개의 현장, 하나의 사건 파일.</p>
+  <p class="motto" lang="en" style="--d:2">Collect the evidence. Keep the taste.</p>
+  <dl class="facts kr" style="--d:3"><dt>공간</dt><dd>1,125㎡</dd><dt>관람</dt><dd>1인 약 60분</dd><dt>미션</dt><dd>메인 6 + 보너스 3</dd></dl>
+</section>
+
+<aside class="zone" id="zone" aria-live="polite" aria-label="현장 안내"></aside>
+
+<div class="case" id="case" aria-label="사건 파일 도장">
+  <p class="no">CASE FILE <b>NO. 0412</b></p>
+  <div class="stamps">
+    <span class="stamp" data-s="a" style="--sc:var(--blue)">A<span class="ink">APPRAISED<b>FAKE.</b></span></span>
+    <span class="stamp" data-s="b" style="--sc:var(--red)">B<span class="ink">STATEMENT<b>CONFESSED</b></span></span>
+    <span class="stamp" data-s="c" style="--sc:var(--lime); --st:var(--ink)">C<span class="ink">WALL<b>BUFFED</b></span></span>
+  </div>
+  <p class="state" id="caseState">세 현장을 모두 둘러보면 사건이 종결됩니다.</p>
+</div>
+<p class="hint">드래그로 돌려 보고, 휠로 가까이 봅니다.<br>현장을 누르면 안으로 들어갑니다.</p>
+
+<nav class="route" id="route" aria-label="관람 동선"></nav>
+<p class="sr" aria-live="polite" id="live"></p>
+
+<script>window.ART = {{ART}};</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ART = window.ART, $ = s => document.querySelector(s), live = $('#live');
+const deg = d => d * Math.PI / 180;
+
+// ---------- the site, in metres: x runs west to east (45 m), z north to south (25 m) ----------
+// zones and missions follow the E안 floor plan (02) and mission list (04)
+const ZONES = {
+  overview: {code: '전체', name: '전체 보기', sub: '340평 U자 동선', target: [22.5, 0, 13.4], az: -30, el: 47, dist: 86, shift: -.1},
+  in: {code: 'IN', name: '입구 홀', en: 'ENTRANCE HALL', sub: '미션북 · 웰컴 칩', color: '#fbfbfb', text: '#0c0c0c', meta: '98㎡',
+    lead: '먹고 사는 일은 입구와 출구에서만. 여기서 사건 파일을 받고 세 현장으로 들어갑니다.',
+    target: [7.4, 0, 21.4], az: -24, el: 48, dist: 34, shift: .2, chip: [7.2, 21.6],
+    steps: [['대기열', '폴리스 라인 차단봉으로 만든 실내 대기 줄. 회차별 입장.'], ['발권 · QR', '예약 QR 확인, 입장 팔찌 착용.'], ['미션북', '사건 파일(미션북)과 펜 수령.'],
+      ['웰컴 칩', 'CRISPY CHIP 미니 1인 1봉. B2 크런치 미션에 사용.'], ['브리핑', '60초 사건 개요 영상, GATE A로 입장.']]},
+  a: {code: 'A', name: '미술관', en: 'WORLD A', sub: '미션 2 + 보너스', color: '#1f6fe5', meta: '252㎡ · 약 15분',
+    lead: '모두가 인정하는 좋은 취향의 공간. 명화와 캡션 사이에 BLUFF가 숨어 있습니다.',
+    target: [7.2, 0, 9.2], az: -26, el: 48, dist: 42, shift: .2, chip: [4.6, 15.6],
+    spaces: [['A-00', 'CAPTION GATE', '규칙판 · 레터링 · 티켓 포디움'], ['A-01', 'GALLERY', '명화 3점 · 흉상'], ['A-02', 'SOUND OF CRUNCH', '흡음 부스 3 (H2.2)'], ['A-03', 'PLEASE DO TOUCH.', '블루 룸 · 받침대 3 · 칩 · 도장 데스크']]},
+  b: {code: 'B', name: '사건 현장', en: 'WORLD B', sub: '미션 2 + 보너스', color: '#e51212', meta: '234㎡ · 약 20분',
+    lead: '좋은 취향이 도난당했습니다. 빈 액자에서 시작해 증거와 자백을 모읍니다.',
+    target: [22.6, 0, 9.2], az: -26, el: 48, dist: 42, shift: .2, chip: [22.5, 3.2],
+    spaces: [['B-01', 'THE EMPTY FRAME', '빈 금색 액자 · 레드 테이프 저지선 · 분필 윤곽선'], ['B-02', 'EVIDENCE ROOM', '증거물 선반 · B1 단서 테이블'], ['B-03', 'INTERROGATION', '레드 룸 · 가짜 거울 · 데시벨 모니터'], ['B-04', 'LINE-UP', '키 눈금 벽 · 카메라 · 인화']]},
+  c: {code: 'C', name: '거리', en: 'WORLD C', sub: '미션 2 + 보너스', color: '#c6f21a', text: '#0c0c0c', meta: '252㎡ · 약 15분',
+    lead: '갤러리 밖, 그래피티의 거리. 오늘의 스트레스를 벽에 남기고 사건을 종결합니다.',
+    target: [37.9, 0, 9.2], az: -26, el: 48, dist: 42, shift: .2, chip: [37.4, 2.4],
+    spaces: [['C-01', 'SHUTTER GATE', 'H2.1 셔터 · 열린 문 0.9M'], ['C-02', 'THE BUFF WALL', '북측 14M 벽 · 덧칠 패치 · 태그 · 도구함'], ['C-03', 'DESTROYING CRUNCH', '고무 바닥 · 스테이션 3 · 게이지 스크린'], ['C-04', 'MIDNIGHT ARCHIVE', '타임랩스 스크린 · 사진 패널 4'], ['C-05', 'CASE CLOSED', '화이트 바닥 · 데스크 · 대기 라인']]},
+  out: {code: 'OUT', name: '출구 홀', en: 'EXIT HALL', sub: '보상 · 구매', color: '#fbfbfb', text: '#0c0c0c', meta: '98㎡',
+    lead: '도장 3개를 모은 사건 파일은 여기서 보상 토큰으로 바뀝니다. 시식과 구매도 출구에서만.',
+    target: [37.8, 0, 21.4], az: -24, el: 48, dist: 34, shift: .2, chip: [37.8, 21.8],
+    steps: [['토큰 교환', 'CASE CLOSED 미션북 확인, 보상 토큰 지급.'], ['보상 자판기', '토큰으로 한정 굿즈 랜덤 1개 뽑기.'], ['SODA BAR', 'BLUFF SODA 시음 · 캔 구매.'],
+      ['BLUFF SHOP', '한정 3종 세트, 굿즈, 스티커 팩.'], ['계산', '계산대 한 곳. RED 쇼핑백을 들고 출구로.']]},
+};
+const ORDER = ['in', 'a', 'b', 'c', 'out'];
+// missions: id, zone, name, english, what you do, minutes, main / bonus, stamp, position
+const MISSIONS = [
+  ['A1', 'a', '가짜를 찾아라', 'SPOT THE BLUFF', '명화 3점 중 BLUFF 칩이 몰래 그려진 한 점을 찾아 작품 번호를 미션북에 적는다.', 3, 1, '', [4.9, 6.5]],
+  ['A2', 'a', '작품에 손대시오', 'PLEASE DO TOUCH', '웰컴 칩을 받침대에 올려 ‘내 작품’으로 전시하고, 빈 캡션 카드에 작품명을 써서 촬영한다.', 4, 1, 'A', [11.4, 10.0]],
+  ['A3', 'a', '오디오 가이드 퀴즈', 'AUDIO GUIDE', '헤드폰으로 씹는 소리 3개를 듣고 어떤 스낵인지 맞힌다. QUAZIC CHIPS, BITE JERKY, CHEWY BITE.', 3, 0, '', [11.2, 3.2]],
+  ['B1', 'b', '증거 수집', 'EVIDENCE', '증거물 봉투 3개 속 단서 카드를 모아 ‘좋은 취향을 훔친 범인’을 추리해 적는다.', 6, 1, '', [19.4, 8.6]],
+  ['B2', 'b', '크런치 자백', 'CONFESSION', '웰컴 칩을 씹어 소리 크기를 측정한다. 기준 데시벨을 넘기면 ‘자백 인정’.', 4, 1, 'B', [25.5, 8.9]],
+  ['B3', 'b', '머그샷', 'LINE-UP', '혐의 팻말을 들고 키 눈금 벽 앞에서 촬영, 즉석 인화 사진을 미션북에 붙인다.', 3, 0, '', [19.0, 13.6]],
+  ['C1', 'c', '한 줄 고백', 'TAG', 'BUFF WALL에 마커로 오늘의 스트레스 한 줄과 사인을 남긴다. 벽은 매일 밤 회색으로 덮인다.', 4, 1, '', [40.6, 1.6]],
+  ['C2', 'c', '크런치 파괴', 'DESTROY', '악력기와 스퀴시로 화면 속 ‘스트레스 게이지’를 끝까지 채운다.', 3, 1, 'C', [34.0, 8.2]],
+  ['C3', 'c', '어제의 벽', 'ARCHIVE', '어젯밤 지워진 벽 사진에서 태그를 찾는다. 재방문하면 지워진 내 태그를 찾는 미션으로 바뀐다.', 3, 0, '', [40.4, 6.2]],
+];
+const DESKS = {a: [12.2, 11.3], b: [25.8, 17.2], c: [39.6, 16.2]};
+
+// ---------- renderer: drawn only when something moves ----------
+const canvas = $('#site');
+const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true, powerPreference: 'high-performance'});
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;            // nothing in the model moves, so its shadows are worked out once
+const scene = new THREE.Scene();
+let W = innerWidth, H = innerHeight;
+const camera = new THREE.PerspectiveCamera(30, W / H, .5, 400);
+renderer.setSize(W, H, false);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2a2a, 1.25));
+const sun = new THREE.DirectionalLight(0xfff1df, 2.6);
+sun.position.set(22.5 + 16, 38, 12.5 - 20); sun.target.position.set(22.5, 0, 12.5);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, {left: -32, right: 32, top: 26, bottom: -26, near: 5, far: 90});
+sun.shadow.bias = -.0004; sun.shadow.normalBias = .03; sun.shadow.radius = 4;
+scene.add(sun, sun.target);
+const fill = new THREE.DirectionalLight(0xc9d6ff, .45); fill.position.set(-20, 18, 40); scene.add(fill);
+
+// ---------- materials: every box of the same material is merged into one draw ----------
+const BUCKET = {};
+function mat(name, color, o = {}) {
+  BUCKET[name] = {geos: [], mat: new THREE.MeshStandardMaterial({color, roughness: o.r ?? .88, metalness: o.m ?? 0,
+    emissive: o.e ?? 0x000000, emissiveIntensity: o.ei ?? 1}), shadow: o.shadow ?? true};
+}
+mat('base', 0xd6d5d0); mat('hall', 0x2a2a29); mat('hallWall', 0x1d1d1c);
+mat('aFloor', 0xe6e5e1); mat('aWall', 0xf3f2ee); mat('blue', 0x1f6fe5, {r: .7}); mat('staff', 0xa4a39e);
+mat('black', 0x121212, {r: .6}); mat('bFloor', 0x252524); mat('bWall', 0x2e2e2d); mat('red', 0xd81616, {r: .7});
+mat('gold', 0xbf9644, {r: .32, m: .75}); mat('cFloor', 0x8c8c88); mat('cWall', 0xa2a29e); mat('white', 0xf2f1ed);
+mat('stock', 0x6b6b67); mat('grey', 0x7b7b77); mat('figure', 0xbcbcb7, {r: .75});
+mat('lime', 0xc6f21a, {e: 0x9ebf0f, ei: .55, r: .6}); mat('chip', 0xe0ae47, {r: .55, m: .2}); mat('mirror', 0x2a2d31, {r: .12, m: .9});
+const route = [];                                    // dashes of the walking line, drawn unlit
+function box(name, x0, z0, x1, z1, y0, y1) {
+  const g = new THREE.BoxGeometry(Math.abs(x1 - x0), y1 - y0, Math.abs(z1 - z0));
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2); BUCKET[name].geos.push(g);
+}
+function cyl(name, x, z, r, y0, y1, seg = 14) { const g = new THREE.CylinderGeometry(r, r, y1 - y0, seg); g.translate(x, (y0 + y1) / 2, z); BUCKET[name].geos.push(g); }
+function ball(name, x, y, z, r) { const g = new THREE.SphereGeometry(r, 16, 12); g.translate(x, y, z); BUCKET[name].geos.push(g); }
+// a straight wall with door openings cut out of it
+const T = .2;
+function wallX(name, x, z0, z1, h, gaps = []) { let s = z0; for (const [a, b] of [...gaps, [z1, z1]]) { if (a > s) box(name, x - T / 2, s, x + T / 2, a, 0, h); s = b; } }
+function wallZ(name, z, x0, x1, h, gaps = []) { let s = x0; for (const [a, b] of [...gaps, [x1, x1]]) { if (a > s) box(name, s, z - T / 2, a, z + T / 2, 0, h); s = b; } }
+const floor = (name, x0, z0, x1, z1, y = .03) => box(name, x0, z0, x1, z1, 0, y);
+
+// plinth, then the floor of every room
+box('base', -.45, -.45, 45.45, 25.45, -.5, 0);
+floor('hall', 0, 18, 14.1, 25); floor('stock', 14.1, 18, 29, 25); floor('black', 29, 18, 30.8, 25); floor('hall', 30.8, 18, 45, 25);
+floor('aFloor', 0, 0, 14.1, 18); floor('blue', 8.1, 5.2, 14.1, 12, .035); floor('staff', 9.2, 12, 14.1, 18, .035);
+floor('black', 14.1, 0, 16, 18); floor('bFloor', 16, 0, 29, 18); floor('black', 29, 0, 30.8, 18);
+floor('cFloor', 30.8, 0, 45, 18); floor('white', 36.7, 12, 45, 18, .035);
+
+// outer shell: the far walls (north, east) stand 4 m, the near ones (south, west) are cut low like a model
+wallZ('aWall', -T / 2, 0, 14.1, 4); wallZ('hallWall', -T / 2, 14.1, 16, 4); wallZ('bWall', -T / 2, 16, 29, 4); wallZ('hallWall', -T / 2, 29, 30.8, 4); wallZ('cWall', -T / 2, 30.8, 45, 4);
+wallX('cWall', 45 + T / 2, -T, 18, 4); wallX('hallWall', 45 + T / 2, 18, 25 + T, 4);
+wallX('aWall', -T / 2, -T, 18, .55); wallX('hallWall', -T / 2, 18, 25 + T, .55);
+wallZ('hallWall', 25 + T / 2, -T, 45 + T, .55, [[.5, 2.4], [42.4, 44.3]]);
+// partitions, 2.4 m
+const P = 2.4;
+wallX('aWall', 14.1, 0, 18, P, [[10.4, 12.3]]); wallX('bWall', 16, 0, 18, P, [[2.9, 4.8]]);
+wallX('bWall', 29, 0, 18, P, [[14.6, 16.4]]); wallX('cWall', 30.8, 0, 18, P, [[14.6, 16.4]]);
+wallZ('aWall', 18, 0, 14.1, P, [[7.3, 9.0]]); wallZ('hallWall', 18, 14.1, 29, P); wallZ('hallWall', 18, 29, 30.8, P, [[29.1, 30.7]]); wallZ('cWall', 18, 30.8, 45, P, [[40.0, 41.6]]);
+wallX('hallWall', 14.1, 18, 25, P); wallX('hallWall', 29, 18, 25, P); wallX('hallWall', 30.8, 18, 25, P, [[21.4, 23.0]]);
+box('black', 30.7, 14.6, 30.9, 16.4, 2.1, P);                  // the shutter, rolled up over the gate
+
+// ---------- WORLD A ----------
+wallZ('blue', 5.2, 8.1, 14.1, P); wallX('blue', 8.1, 5.2, 8.9, P);
+wallZ('staff', 12, 9.2, 14.1, P); wallX('staff', 9.2, 12, 18, P);
+box('aWall', 1.2, 13.45, 6.8, 13.7, 0, P);                   // caption gate
+for (const [x, z] of [[9.4, 3.2], [11.3, 3.2], [13.2, 3.2]]) box('black', x - .62, z - .62, x + .62, z + .62, 0, 2.2);   // sound booths
+for (const [x, z] of [[10.3, 7.6], [12.7, 7.0], [11.4, 10.0]]) { box('white', x - .3, z - .3, x + .3, z + .3, 0, 1.0); box('chip', x - .17, z - .12, x + .17, z + .12, 1.0, 1.06); }
+box('grey', 5.5, 7.4, 6.1, 8.0, 0, 1.1); ball('white', 5.8, 1.42, 7.7, .3);   // a bust on its plinth
+box('black', 11.6, 10.95, 12.9, 11.6, 0, .95);                 // stamp desk A
+// ---------- WORLD B ----------
+for (const [x, z] of [[19.6, 1.4], [26.6, 1.4], [19.6, 5.0], [26.6, 5.0]]) cyl('white', x, z, .06, 0, 1.0);
+box('red', 19.6, 1.38, 26.6, 1.42, .9, .96); box('red', 19.6, 4.98, 26.6, 5.02, .9, .96); box('red', 19.58, 1.4, 19.62, 5.0, .9, .96); box('red', 26.58, 1.4, 26.62, 5.0, .9, .96);
+wallZ('bWall', 6, 16, 22, P, [[18.2, 19.6]]); wallZ('bWall', 12, 16, 22, P, [[21.0, 22]]);
+wallZ('red', 6, 22, 29, P); wallX('red', 22, 6, 12, P, [[8.4, 9.6]]); wallZ('red', 12, 22, 29, P, [[27.3, 29]]);
+for (let i = 0; i < 4; i++) { box('grey', 16.2, 6.5 + i * 1.3, 16.9, 7.6 + i * 1.3, 0, 2.1); for (let k = 0; k < 3; k++) box('white', 16.3, 6.6 + i * 1.3 + k * .34, 16.75, 6.86 + i * 1.3 + k * .34, .9 + (k % 2) * .6, 1.2 + (k % 2) * .6); }
+box('black', 18.6, 8.0, 20.4, 9.2, 0, .9); for (let i = 0; i < 3; i++) box('white', 18.8 + i * .55, 8.4, 19.2 + i * .55, 8.7, .9, .92);
+box('black', 24.4, 8.4, 26.6, 9.4, 0, .8); box('grey', 24.9, 7.6, 25.4, 8.1, 0, .9); box('grey', 25.6, 9.7, 26.1, 10.2, 0, .9);
+box('mirror', 28.78, 7.4, 28.88, 10.6, .7, 2.2);              // the fake mirror
+box('black', 25.4, 16.9, 26.8, 17.6, 0, .95);                 // stamp desk B
+cyl('black', 21.2, 15.4, .05, 0, 1.6); box('black', 21.05, 15.3, 21.35, 15.5, 1.6, 1.8);   // the line-up camera
+// ---------- WORLD C ----------
+wallX('cWall', 37.7, 4.6, 12, P); wallZ('cWall', 12, 30.8, 37.7, P, [[33.4, 35.0]]); wallZ('cWall', 12, 37.7, 45, P, [[42.4, 44.3]]); wallX('cWall', 36.7, 12, 18, P);
+for (const x of [32.3, 34.0, 35.8]) { box('black', x - .55, 7.7, x + .55, 8.8, 0, 1.0); box('lime', x - .32, 8.0, x + .32, 8.5, 1.0, 1.06); }
+box('black', 39.0, 15.6, 40.8, 16.5, 0, .95);                 // stamp desk C
+box('white', 40.1, 6.0, 40.7, 6.4, 0, 1.15);                   // archive kiosk
+for (const z of [13.4, 14.4, 15.4]) cyl('black', 43.6, z, .05, 0, 1.0);
+// ---------- halls ----------
+for (let r = 0; r < 3; r++) for (let i = 0; i < 5; i++) cyl('black', 1.0 + r * 1.05, 19.3 + i * 1.15, .05, 0, 1.0, 10);
+for (let r = 0; r < 3; r++) box('black', .98 + r * 1.05, 19.3, 1.02 + r * 1.05, 23.9, .88, .93);
+for (const x of [5.6, 8.0, 10.4]) box('black', x, 21.2, x + 2, 21.9, 0, .95);
+for (const z of [19.2, 23.0]) box('white', 15.0, z, 28.2, z + .6, 0, 2.0);
+for (let i = 0; i < 4; i++) box('black', 36.9 + i * 1.08, 18.2, 37.85 + i * 1.08, 18.95, 0, 1.85);
+box('white', 42.4, 18.35, 44.6, 19.15, 0, .95); box('black', 31.1, 19.2, 31.9, 23.4, 0, 1.05);
+for (const x of [33.6, 36.6, 39.6]) box('grey', x, 21.3, x + 2, 21.9, 0, .8);
+box('red', 41.8, 22.3, 44.4, 23.2, 0, 1.0);
+// people, for scale (1.7 m)
+for (const [x, z] of [[2.1, 22.6], [6.4, 22.7], [4.6, 9.4], [11.6, 8.6], [18.9, 10.2], [25.2, 4.2], [20.6, 15.8], [33.3, 6.4], [41.8, 2.8], [39.5, 15.0], [34.6, 22.8], [43.2, 21.8], [12.6, 4.6]]) {
+  cyl('figure', x, z, .2, 0, 1.38, 12); ball('figure', x, 1.56, z, .15); }
+
+// ---------- the walking line: IN, through A, B and C, OUT (traced from the 02 floor plan) ----------
+const px = (x, y) => [(x - 55) / 17.67, (y - 165) / 17.67];
+const LINE = [[80, 612], [80, 540], [100, 540], [100, 595], [125, 595], [125, 548], [145, 552], [280, 552], [280, 518], [198, 518], [198, 430], [103, 352], [103, 242], [195, 242],
+  [292, 250], [292, 365], [325, 365], [325, 232], [468, 232], [390, 355], [530, 355], [452, 440], [585, 440], [650, 455], [660, 350], [715, 345], [715, 212], [820, 212], [820, 425],
+  [775, 425], [775, 520], [635, 520], [635, 560], [820, 560], [820, 620]].map(p => px(...p));
+for (let i = 0; i < LINE.length - 1; i++) {
+  const [x0, z0] = LINE[i], [x1, z1] = LINE[i + 1], len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(z1 - z0, x1 - x0);
+  for (let d = 0; d < len; d += .62) { const l = Math.min(.36, len - d), g = new THREE.BoxGeometry(l, .02, .11);
+    g.rotateY(-ang); g.translate(x0 + Math.cos(ang) * (d + l / 2), .06, z0 + Math.sin(ang) * (d + l / 2)); route.push(g); }
+}
+
+// ---------- textures drawn on canvases (signs, the buff wall, screens) ----------
+const LOGO = [...document.querySelectorAll('#logo path')].map(p => new Path2D(p.getAttribute('d')));
+const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+function paint(w, h, draw, basic) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; return t;
+}
+function logo(g, x, y, w, color, rot = 0) { g.save(); g.translate(x, y); g.rotate(rot); g.scale(w / 265, w / 265); g.fillStyle = color; for (const p of LOGO) g.fill(p); g.restore(); }
+const planes = [];
+function plane(tex, w, h, x, y, z, ry = 0, o = {}) {
+  const m = o.basic ? new THREE.MeshBasicMaterial({map: tex, toneMapped: false, transparent: !!o.alpha, alphaTest: o.alpha ? .5 : 0})
+    : new THREE.MeshStandardMaterial({map: tex, roughness: o.r ?? .85, metalness: 0, alphaTest: o.alpha ? .5 : 0});
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
+  mesh.position.set(x, y, z); mesh.rotation.y = ry; mesh.receiveShadow = !o.basic; scene.add(mesh); planes.push(mesh); return mesh;
+}
+const loader = new THREE.TextureLoader();
+const img = src => { const t = loader.load(src, () => kick()); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; return t; };
+
+function dress() {
+  // A: three works on the north wall, gold frames, the caption gate and the blue room
+  ART.paintings.forEach((p, i) => { const x = 2.4 + i * 2.6, w = 1.25, h = w * p.h / p.w;
+    box('gold', x - w / 2 - .08, .02, x + w / 2 + .08, .1, 1.75 - h / 2 - .08, 1.75 + h / 2 + .08);
+    plane(img(p.src), w, h, x, 1.75, .105); });
+  plane(paint(1024, 440, (g, w, h) => { g.fillStyle = '#f3f2ee'; g.fillRect(0, 0, w, h); g.fillStyle = '#1b1b1b'; g.textAlign = 'center';
+    g.font = 'italic 64px "Libre Baskerville"'; g.fillText('Museum of', w / 2, 190); g.fillText('Good Taste', w / 2, 280);
+    g.font = '500 22px "Roboto Mono"'; g.fillStyle = '#8f8f8a'; g.fillText('A-00   CAPTION GATE', w / 2, 360); }), 5.6, 2.4, 4.0, 1.2, 13.71);
+  plane(paint(1024, 410, (g, w, h) => { g.fillStyle = '#1f6fe5'; g.fillRect(0, 0, w, h); g.fillStyle = '#fbfbfb';
+    g.font = '900 96px Roboto'; g.fillText('PLEASE DO', 70, 190); g.fillText('NOT TOUCH.', 70, 290); }), 6.0, 2.4, 11.1, 1.2, 5.31);
+  // B: the empty frame, the case board, chalk outline, height chart
+  box('gold', 22.2, .02, 23.8, .14, 1.15, 1.3); box('gold', 22.2, .02, 23.8, .14, 2.95, 3.1); box('gold', 22.2, .02, 22.35, .14, 1.15, 3.1); box('gold', 23.65, .02, 23.8, .14, 1.15, 3.1);
+  plane(paint(256, 320, (g, w, h) => { g.fillStyle = '#202020'; g.fillRect(0, 0, w, h); g.fillStyle = '#e51212'; g.font = '500 26px "Roboto Mono"'; g.textAlign = 'center'; g.fillText('STOLEN', w / 2, h / 2 + 9); }), 1.3, 1.65, 23, 2.12, .11);
+  plane(paint(512, 640, (g, w, h) => { g.fillStyle = '#efeeea'; g.fillRect(0, 0, w, h); g.fillStyle = '#121212'; g.font = '500 40px "Roboto Mono"'; g.fillText('CASE NO.', 44, 92); g.font = '900 120px Roboto'; g.fillText('0412', 40, 220);
+    g.fillStyle = '#c9c8c3'; for (let i = 0; i < 6; i++) g.fillRect(44, 300 + i * 52, 420 - (i % 3) * 90, 14); }), .95, 1.2, 27.7, 1.9, .11);
+  plane(paint(512, 340, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = '#f4f4f0'; g.lineWidth = 7; g.setLineDash([22, 16]); g.beginPath();
+    g.moveTo(150, 60); g.bezierCurveTo(250, 20, 330, 90, 300, 150); g.lineTo(460, 120); g.lineTo(470, 175); g.lineTo(300, 205); g.bezierCurveTo(330, 300, 230, 310, 200, 250);
+    g.lineTo(60, 300); g.lineTo(40, 250); g.lineTo(180, 200); g.bezierCurveTo(90, 180, 80, 90, 150, 60); g.stroke(); }), 3.2, 2.1, 23.1, .07, 3.2, 0, {alpha: true}).rotation.x = -Math.PI / 2;
+  plane(paint(1024, 420, (g, w, h) => { g.fillStyle = '#d9d8d3'; g.fillRect(0, 0, w, h); g.fillStyle = '#2a2a2a'; g.font = '500 22px "Roboto Mono"';
+    for (let i = 0; i <= 10; i++) { const y = h - 20 - i * 37; g.fillRect(0, y, i % 2 ? 60 : 120, 4); g.fillRect(w - (i % 2 ? 60 : 120), y, i % 2 ? 60 : 120, 4); if (!(i % 2)) g.fillText(String(100 + i * 10), 132, y + 8); }
+    g.font = '900 64px Roboto'; g.fillText('LINE-UP', 380, 120); }), 4.8, 2.0, 18.9, 1.1, 12.11);
+  // C: the buff wall, 14 m of grey paint over yesterday, BLUFF on top
+  plane(paint(2048, 585, (g, w, h) => {
+    g.fillStyle = '#a2a29e'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 2600; i++) { g.fillStyle = `rgba(${Math.random() < .5 ? '0,0,0' : '255,255,255'},${Math.random() * .06})`; g.fillRect(Math.random() * w, Math.random() * h, 3, 3); }
+    const patch = [[60, 90, 520, 300, '#8d8d89'], [610, 60, 300, 250, '#b3b3ae'], [940, 140, 420, 260, '#91918d'], [1400, 70, 300, 330, '#b6b6b1'], [1730, 120, 260, 280, '#8a8a86'], [420, 360, 380, 160, '#999995'], [1160, 400, 360, 140, '#adada8']];
+    for (const [x, y, pw, ph, c] of patch) { g.fillStyle = c; g.fillRect(x, y, pw, ph); }
+    logo(g, 110, 110, 720, '#c6f21a', -.09);
+    g.fillStyle = '#c6f21a'; g.save(); g.translate(990, 250); g.rotate(-.05); g.font = 'italic 900 92px Roboto'; g.fillText('NO PAIN.', 0, 0); g.restore();
+    g.save(); g.translate(1440, 200); g.rotate(.04); g.font = '900 70px "Noto Sans KR"'; g.fillText('마감 3개 끝.', 0, 0); g.restore();
+    logo(g, 1700, 330, 260, '#c6f21a', -.14); logo(g, 640, 420, 200, '#1d1d1d', .06);
+    g.font = '500 26px "Roboto Mono"'; g.fillStyle = '#5d5d59'; g.fillText('C-02   THE BUFF WALL   14M', 60, 560);
+  }), 14.0, 4.0, 37.8, 2.0, .11);
+  const screen = (draw, w, h, x, y, z, ry = 0) => plane(paint(512, Math.round(512 * h / w), draw), w, h, x, y, z, ry, {basic: true});
+  screen((g, w, h) => { g.fillStyle = '#111'; g.fillRect(0, 0, w, h); g.fillStyle = '#c6f21a'; [.82, .55, .3].forEach((k, i) => g.fillRect(70 + i * 140, h - 40 - (h - 90) * k, 80, (h - 90) * k));
+    g.font = '500 22px "Roboto Mono"'; g.fillText('STRESS', 70, 40); }, 3.6, 1.1, 34.0, 1.75, 8.95);
+  box('black', 32.1, 8.85, 35.9, 8.92, 1.15, 2.35);
+  for (let i = 0; i < 4; i++) { const x = 38.9 + i * 1.5; cyl('black', x, 5.0, .04, 0, 1.15, 8);
+    screen((g, w, h) => { g.fillStyle = '#1a1a1a'; g.fillRect(0, 0, w, h); g.fillStyle = ['#8d8d89', '#b3b3ae', '#999995', '#adada8'][i]; g.fillRect(30, 40, w - 60, h - 80);
+      logo(g, 60 + i * 20, 80, 300, '#c6f21a', -.08 + i * .05); g.fillStyle = '#fbfbfb'; g.font = '500 20px "Roboto Mono"'; g.fillText('LAST NIGHT  0' + (i + 1), 30, 28); }, 1.2, .78, x, 1.55, 5.03); }
+  // halls: briefing screen, reward vending, the shop
+  screen((g, w, h) => { g.fillStyle = '#f4f3ef'; g.fillRect(0, 0, w, h); logo(g, 96, 40, 320, '#e51212'); g.fillStyle = '#121212'; g.font = '500 22px "Roboto Mono"'; g.textAlign = 'center'; g.fillText('CASE NO. 0412', w / 2, h - 34); }, 2.8, 1.25, 12.1, 1.75, 17.88);
+  for (let i = 0; i < 4; i++) screen((g, w, h) => { g.fillStyle = '#c6f21a'; g.fillRect(0, 0, w, h); g.fillStyle = '#151515'; g.fillRect(40, 60, w - 80, h * .55);
+    g.fillStyle = '#c6f21a'; for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) g.fillRect(70 + k * 95, 90 + r * 130, 50, 80); g.fillStyle = '#151515'; g.fillRect(40, h - 150, 150, 70); }, .82, 1.5, 37.37 + i * 1.08, 1.0, 18.96);
+  ART.bags.forEach((b, i) => { for (let t = 0; t < 3; t++) plane(img(b.src), .34, .34 * b.h / b.w, 34.6 + t * 3 + (i - 1) * .55, .8 + .17 * b.h / b.w + .01, 21.6, 0, {alpha: true}); });
+}
+
+// ---------- labels: zone chips in the overview, mission pins inside a world ----------
+const layer = $('#labels'), tags = [];
+function tag(el, x, y, z) { layer.appendChild(el); const t = {el, p: new THREE.Vector3(x, y, z)}; tags.push(t); return t; }
+for (const k of ORDER) { const Z = ZONES[k], b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.dataset.zone = k; b.style.setProperty('--zc', Z.color); if (Z.text) b.style.setProperty('--zt', Z.text);
+  b.innerHTML = `<i>${Z.code}</i>${Z.name}`; b.setAttribute('aria-label', `${Z.code} ${Z.name}, 들어가기`); b.addEventListener('click', () => go(k));
+  Z.tag = tag(b, Z.chip[0], 2.9, Z.chip[1]); }
+{ const s = document.createElement('span'); s.className = 'chip flat'; s.style.setProperty('--zc', '#efeeea'); s.style.setProperty('--zt', '#121212'); s.innerHTML = '공용 STOCK'; tag(s, 21.6, 2.4, 21.4).stock = true; }
+const pinStyle = (m) => { const Z = ZONES[m[1]]; return m[6] ? [Z.color, Z.text || '#fbfbfb'] : ['#fbfbfb', '#0c0c0c']; };
+for (const m of MISSIONS) { const b = document.createElement('button'); b.className = 'pin'; b.type = 'button'; b.dataset.m = m[0]; b.dataset.zone = m[1];
+  const [c, t] = pinStyle(m); b.style.setProperty('--pc', c); b.style.setProperty('--pt', t); b.textContent = m[0];
+  b.setAttribute('aria-label', `${m[0]} ${m[2]}`); b.addEventListener('click', () => focusMission(m[0]));
+  b.addEventListener('pointerenter', () => hot(m[0], true)); b.addEventListener('pointerleave', () => hot(m[0], false));
+  tag(b, m[8][0], 2.7, m[8][1]); }
+for (const [k, [x, z]] of Object.entries(DESKS)) { const b = document.createElement('span'); b.className = 'pin'; b.dataset.zone = k; b.dataset.desk = '1';
+  b.style.setProperty('--pc', '#121212'); b.style.setProperty('--pt', '#fbfbfb'); b.textContent = 'S'; b.title = '도장 데스크'; tag(b, x, 2.3, z); }
+
+const v = new THREE.Vector3();
+function placeTags() {
+  for (const t of tags) { v.copy(t.p).project(camera);
+    const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H;
+    t.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -100%)`;
+    if (t.el.classList.contains('pin')) { v.set(t.p.x, 0, t.p.z).project(camera); t.el.style.setProperty('--stem', Math.max(0, (1 - v.y) / 2 * H - y).toFixed(0) + 'px'); } }
+}
+function showTags() {
+  for (const t of tags) { const el = t.el, z = el.dataset.zone;
+    el.classList.toggle('show', mode === 'overview' ? el.classList.contains('chip') : (el.classList.contains('pin') && z === mode)); }
+}
+
+// ---------- camera: a dollhouse view that flies into each world ----------
+const controls = new OrbitControls(camera, canvas);
+Object.assign(controls, {enableDamping: true, dampingFactor: .085, enablePan: false, rotateSpeed: .55, zoomSpeed: .7, minDistance: 13, maxDistance: 95,
+  minPolarAngle: deg(22), maxPolarAngle: deg(70), minAzimuthAngle: deg(-82), maxAzimuthAngle: deg(22)});
+let shift = 0, mode = 'overview', fly = null;
+function frame() { camera.aspect = W / H; camera.setViewOffset(W, H, shift * W, 0, W, H); camera.updateProjectionMatrix(); }
+function place(t, az, el, dist) { controls.target.set(...t);
+  camera.position.set(t[0] + Math.sin(deg(az)) * Math.cos(deg(el)) * dist, t[1] + Math.sin(deg(el)) * dist, t[2] + Math.cos(deg(az)) * Math.cos(deg(el)) * dist); }
+const sph = new THREE.Spherical(), off = new THREE.Vector3();
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function flyTo(Z, dur = 1500) {
+  off.copy(camera.position).sub(controls.target); sph.setFromVector3(off);
+  fly = {t0: performance.now(), dur: reduce ? 1 : dur, from: {t: controls.target.clone(), az: sph.theta, el: Math.PI / 2 - sph.phi, d: sph.radius, s: shift},
+    to: {t: new THREE.Vector3(...Z.target), az: deg(Z.az), el: deg(Z.el), d: Z.dist, s: Z.shift ?? .14}};
+  controls.enabled = false; kick();
+}
+function stepFly(now) {
+  const k = Math.min(1, (now - fly.t0) / fly.dur), e = easeIO(k), f = fly.from, t = fly.to;
+  const tg = f.t.clone().lerp(t.t, e), az = f.az + (t.az - f.az) * e, el = f.el + (t.el - f.el) * e;
+  const d = f.d + (t.d - f.d) * e + Math.sin(Math.PI * e) * (Math.abs(t.d - f.d) < 20 ? 10 : 0);   // a short lift between neighbouring worlds
+  shift = f.s + (t.s - f.s) * e; frame();
+  controls.target.copy(tg); camera.position.set(tg.x + Math.sin(az) * Math.cos(el) * d, tg.y + Math.sin(el) * d, tg.z + Math.cos(az) * Math.cos(el) * d); camera.lookAt(tg);
+  if (k >= 1) { const done = fly.done; fly = null; controls.enabled = true; controls.update(); done && done(); }
+  return true;
+}
+
+// ---------- draw on demand: the GPU rests whenever nothing changes ----------
+let raf = 0, still = 0;
+function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+function loop(now) {
+  raf = 0;
+  const flying = fly ? stepFly(now) : false;
+  const moved = !fly && controls.update();
+  renderer.render(scene, camera); placeTags();
+  still = flying || moved ? 0 : still + 1;
+  if (still < 3) kick();                           // a couple of extra frames let the damping settle, then the loop stops
+}
+controls.addEventListener('change', kick); controls.addEventListener('start', kick);
+
+// ---------- worlds: pick from the model, the chips or the route ----------
+const routeEl = $('#route');
+routeEl.innerHTML = ['overview', ...ORDER].map(k => { const Z = ZONES[k];
+  return `<button type="button" data-zone="${k}" style="--zc:${Z.color || '#fbfbfb'}"><span class="c">${Z.code === '전체' ? 'ALL' : Z.code}</span><span class="n">${Z.name}</span><span class="s kr">${Z.sub}</span></button>`; }).join('');
+routeEl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => go(b.dataset.zone)));
+const zoneEl = $('#zone'), seen = new Set();
+function fillZone(k) {
+  const Z = ZONES[k], dark = Z.text ? `--zt:${Z.text};` : '';
+  zoneEl.style.cssText = `--zc:${Z.color};${dark}`;
+  let body = `<p class="meta"><span class="code">${Z.code}</span><span>${Z.en}</span><span>${Z.meta}</span></p><h2>${Z.name}</h2><p class="lead kr">${Z.lead}</p>`;
+  if (Z.spaces) body += `<h3>공간</h3><dl class="spaces">${Z.spaces.map(([c, n, d]) => `<dt>${c}</dt><dd><b>${n}</b><span class="kr">${d}</span></dd>`).join('')}</dl>`;
+  if (Z.steps) body += `<h3>순서</h3><ol>${Z.steps.map(([n, d], i) => `<li style="--pc:#efeeea;--pt:#121212"><span class="dot">0${i + 1}</span><div><b>${n}</b><p class="kr">${d}</p></div></li>`).join('')}</ol>`;
+  const ms = MISSIONS.filter(m => m[1] === k);
+  if (ms.length) body += `<h3>미션</h3><ol>${ms.map(m => { const [c, t] = pinStyle(m);
+    return `<li data-m="${m[0]}" style="--pc:${c};--pt:${t}"><span class="dot">${m[0]}</span><div><b>${m[2]}<small>${m[3]}</small></b><p class="kr">${m[4]}</p>
+      <p class="tag">${m[5]}분 · <em>${m[6] ? '메인' : '보너스'}</em>${m[7] ? ` · 도장 ${m[7]}` : ''}</p></div></li>`; }).join('')}</ol>`;
+  zoneEl.innerHTML = body; zoneEl.scrollTop = 0;
+  zoneEl.querySelectorAll('li[data-m]').forEach(li => { li.addEventListener('pointerenter', () => hot(li.dataset.m, true)); li.addEventListener('pointerleave', () => hot(li.dataset.m, false)); });
+}
+function hot(id, on) { layer.querySelector(`.pin[data-m="${id}"]`)?.classList.toggle('hot', on); zoneEl.querySelector(`li[data-m="${id}"]`)?.classList.toggle('hot', on); }
+function focusMission(id) { const li = zoneEl.querySelector(`li[data-m="${id}"]`); if (!li) return;
+  li.scrollIntoView({block: 'nearest', behavior: reduce ? 'auto' : 'smooth'}); hot(id, true); setTimeout(() => hot(id, false), 1400); }
+function go(k) {
+  if (!ZONES[k] || (k === mode && !fly)) return;
+  mode = k; document.body.classList.toggle('zoned', k !== 'overview');
+  routeEl.querySelectorAll('button').forEach(b => b.toggleAttribute('aria-current', b.dataset.zone === k));
+  if (k !== 'overview') fillZone(k);
+  showTags(); flyTo(ZONES[k]);
+  fly.done = () => { if ('abc'.includes(k) && !seen.has(k)) stampIt(k); };
+  live.textContent = k === 'overview' ? '전체 보기' : `${ZONES[k].code} ${ZONES[k].name}`;
+}
+function stampIt(k) {
+  seen.add(k); $(`.stamp[data-s="${k}"]`).classList.add('on');
+  live.textContent += `. 도장 ${k.toUpperCase()}을(를) 받았습니다.`;
+  if (seen.size === 3) setTimeout(() => { $('#case').classList.add('closed'); $('#caseState').textContent = 'CASE CLOSED.'; live.textContent = '사건 종결. CASE CLOSED.'; }, reduce ? 0 : 500);
+}
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input, textarea')) return;
+  const i = ORDER.indexOf(mode);
+  if (e.key === 'ArrowRight') { e.preventDefault(); go(ORDER[Math.min(ORDER.length - 1, i + 1)]); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); i <= 0 ? go('overview') : go(ORDER[i - 1]); }
+  if (e.key === 'Escape' || e.key === 'Home') go('overview');
+});
+
+// clicking the floor of a world walks into it; hovering lights its chip and route step
+const PICK = {in: [0, 18, 14.1, 25], a: [0, 0, 14.1, 18], b: [14.1, 0, 29, 18], c: [29, 0, 45, 18], out: [29, 18, 45, 25]};
+const pickers = Object.entries(PICK).map(([k, [x0, z0, x1, z1]]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0));
+  m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 1.2, (z0 + z1) / 2); m.updateMatrixWorld(); m.visible = false; m.userData.zone = k; return m; });
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function zoneAt(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera); const h = ray.intersectObjects(pickers, false)[0]; return h ? h.object.userData.zone : null; }
+let down = null, hoverZone = null, hoverQueued = false;
+canvas.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', e => { if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5 || fly) return; const k = zoneAt(e); if (k && k !== mode) go(k); });
+canvas.addEventListener('pointermove', e => { if (hoverQueued) return; hoverQueued = true;
+  requestAnimationFrame(() => { hoverQueued = false; const k = e.buttons ? null : zoneAt(e);
+    if (k === hoverZone) return; hoverZone = k; canvas.style.cursor = k && k !== mode ? 'pointer' : '';
+    layer.querySelectorAll('.chip[data-zone]').forEach(c => c.classList.toggle('hot', c.dataset.zone === k));
+    routeEl.querySelectorAll('button').forEach(b => b.classList.toggle('hot', b.dataset.zone === k)); }); });
+
+addEventListener('resize', () => { W = innerWidth; H = innerHeight; renderer.setSize(W, H, false); frame(); kick(); });
+
+// ---------- build, then arrive: the camera settles over the model from above ----------
+async function start() {
+  try { await Promise.race([Promise.all(['900 64px Roboto', 'italic 900 64px Roboto', '900 64px "Noto Sans KR"', 'italic 64px "Libre Baskerville"', '500 20px "Roboto Mono"'].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 2500))]); } catch (e) {}
+  dress();
+  for (const [name, b] of Object.entries(BUCKET)) { if (!b.geos.length) continue;
+    const mesh = new THREE.Mesh(mergeGeometries(b.geos), b.mat); mesh.castShadow = b.shadow; mesh.receiveShadow = true; scene.add(mesh); b.geos.forEach(g => g.dispose()); }
+  scene.add(new THREE.Mesh(mergeGeometries(route), new THREE.MeshBasicMaterial({color: 0xf6f6f2, toneMapped: false})));
+  renderer.shadowMap.needsUpdate = true;
+  const O = ZONES.overview; shift = O.shift; frame();
+  place(O.target, -6, 66, 96); controls.update();
+  routeEl.querySelector('[data-zone="overview"]').setAttribute('aria-current', '');
+  renderer.render(scene, camera);
+  document.body.classList.add('ready'); showTags();
+  flyTo(O, 2600);
+}
+start().catch(err => { console.error(err); const b = $('#boot'); b.classList.add('error'); b.textContent = '3D 모형을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.'; });
+window.__ar = {go, ZONES, renderer, scene, camera};
+</script>
+</body>
+</html>

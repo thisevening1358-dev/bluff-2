@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BLUFF Products 3안</title>
+<meta name="description" content="BLUFF 상품 페이지 3안. 구겨진 명화를 펼치면 QUAZIC CHIPS가 나옵니다.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital@1&family=Noto+Sans+KR:wght@400;500&family=Roboto+Mono:wght@500&family=Roboto:wght@500;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0c0c0c; --paper: #fbfbfb; --stone: #bdbdb9; --mute: #8f8f8a; --red: #e51212;
+  --amber: 255, 227, 184; --warm: 255, 236, 206;
+  --out: cubic-bezier(.16, 1, .3, 1);
+  --head: 80px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--ink); color: var(--paper); overflow: hidden; font-family: Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+::selection { background: var(--red); color: var(--paper); }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 6px; }
+
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: .07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* ---------- header (same as the brand page, so it holds still across the page change) ---------- */
+header { position: fixed; top: 0; left: 0; right: 0; height: var(--head); z-index: 30; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 56px; }
+header .logo svg { width: 100px; height: 40px; display: block; }
+header nav { display: flex; gap: 48px; font: 500 15px/1 Roboto, sans-serif; letter-spacing: .01em; }
+header nav a, header nav span { position: relative; color: rgba(251,251,251,.5); transition: color .3s ease; padding: 8px 0; }
+header nav a:hover, header nav a[aria-current] { color: var(--paper); }
+header nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor;
+  transform: scaleX(0); transform-origin: 0 50%; transition: transform .5s var(--out); }
+header nav a:hover::after, header nav a[aria-current]::after { transform: scaleX(1); }
+header .lang { justify-self: end; display: flex; gap: 10px; font: 500 12px/1 "Roboto Mono", monospace; letter-spacing: .1em; color: var(--mute); }
+header .lang b { color: var(--paper); font-weight: 500; }
+
+#track { position: fixed; left: 0; top: 0; width: 100%; will-change: transform; }
+.screen { position: relative; height: 100vh; overflow: hidden; }
+#paper { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 20; pointer-events: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.kr { font-family: "Noto Sans KR", sans-serif; word-break: keep-all; }
+
+/* copy rises out of its own line when its screen (or the product sheet) arrives */
+.ln { display: block; overflow: hidden; padding-bottom: .14em; margin-bottom: -.14em; }
+.ln > span { display: inline-block; transform: translateY(110%); transition: transform 1.1s var(--out); transition-delay: calc(.25s + var(--d, 0) * .09s); }
+.fx { opacity: 0; transform: translateY(14px); transition: opacity .9s ease, transform 1.1s var(--out); transition-delay: calc(.5s + var(--d, 0) * .09s); }
+.screen.on .ln > span, .sheet.on .ln > span { transform: none; }
+.screen.on .fx, .sheet.on .fx { opacity: 1; transform: none; }
+
+/* ---------- 1. the floor: three crumpled works waiting to be opened ---------- */
+.lamp { position: absolute; left: 50%; top: calc(var(--head) - 22vh); width: 130vh; height: 130vh; transform: translateX(-50%); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(var(--warm), .12), rgba(var(--warm), .085) 26%, rgba(var(--amber), .045) 50%, rgba(var(--amber), 0));
+  transition: left 1.4s var(--out), opacity 1.2s ease; }
+.opened .s-floor .lamp { left: 33%; }
+.floor { position: absolute; left: 0; right: 0; bottom: 0; height: 26vh; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.55)); }
+.s-floor .intro { position: absolute; left: 9vw; top: calc(var(--head) + 13vh); transition: opacity .6s ease, transform .9s var(--out); }
+.opened .s-floor .intro { opacity: 0; transform: translateX(-24px); pointer-events: none; }
+.s-floor h1 { font: 900 clamp(64px, 7.6vw, 150px)/.96 Roboto, sans-serif; letter-spacing: -.045em; }
+.s-floor h1 em { font: italic 400 1em/1.1 "Libre Baskerville", serif; letter-spacing: -.03em; }
+.s-floor .lead { margin-top: 36px; max-width: 30ch; font-size: clamp(18px, 1.3vw, 23px); line-height: 1.75; color: var(--stone); }
+.picks { margin-top: 48px; display: flex; flex-wrap: wrap; gap: 40px; }
+/* same underline motion as the header nav: the line draws in from the left on hover, and stays on the open flavour */
+.picks button { position: relative; border: 0; background: none; cursor: pointer; padding: 8px 0; font: 500 17px/1 Roboto, sans-serif; color: rgba(251,251,251,.5); transition: color .3s ease; }
+.picks button::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor;
+  transform: scaleX(0); transform-origin: 0 50%; transition: transform .5s var(--out); }
+.picks button:hover, .picks button:focus-visible, .picks button[aria-pressed="true"] { color: var(--paper); }
+.picks button:hover::after, .picks button:focus-visible::after, .picks button[aria-pressed="true"]::after { transform: scaleX(1); }
+
+/* ---------- the unfolded sheet: what the painting turned out to be ---------- */
+.sheet { position: fixed; z-index: 25; left: 55vw; right: 7vw; top: calc(50% + var(--head) / 2); transform: translateY(-50%); pointer-events: none; visibility: hidden; transition: visibility 0s linear .6s; }
+.sheet.on { pointer-events: auto; visibility: visible; transition: none; }
+.sheet:not(.on) .ln > span { transition-duration: .4s; transition-delay: 0s; transform: translateY(-110%); }
+.sheet:not(.on) .fx { transition-duration: .35s; transition-delay: 0s; }
+.sheet .kind { font: 500 13px/1 "Roboto Mono", monospace; letter-spacing: .2em; color: var(--mute); }
+.sheet h2 { margin-top: 18px; font: 900 clamp(60px, 6.2vw, 124px)/.95 Roboto, sans-serif; letter-spacing: -.045em; }
+.sheet .claim { margin-top: 26px; font-size: clamp(19px, 1.4vw, 25px); line-height: 1.6; }
+.sheet .big { margin-top: 44px; display: flex; align-items: baseline; gap: 18px; }
+.sheet .big b { font: 900 clamp(56px, 5.4vw, 108px)/1 Roboto, sans-serif; letter-spacing: -.04em; color: var(--red); }
+.sheet .big span { font-size: 16px; color: var(--stone); }
+.sheet dl { margin-top: 40px; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 8px 56px; }
+.sheet dt { grid-row: 1; font: 500 13px/1.4 "Noto Sans KR", sans-serif; color: var(--mute); }
+.sheet dd { grid-row: 2; font: 500 18px/1.4 Roboto, "Noto Sans KR", sans-serif; }
+.sheet .acts { margin-top: 48px; display: flex; align-items: center; gap: 28px; }
+.sheet .next { border: 0; background: none; cursor: pointer; padding: 8px 0; font: 500 15px/1 Roboto, sans-serif; color: var(--stone); position: relative; }
+.sheet .next::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; transform: scaleX(.25); transform-origin: 0 50%; transition: transform .5s var(--out); }
+.sheet .next:hover { color: var(--paper); } .sheet .next:hover::after { transform: scaleX(1); }
+
+/* ---------- 2. soda: the cans do not crumple, they land and stand ---------- */
+.s-soda .lamp { left: 66%; top: calc(var(--head) - 8vh); width: 120vh; height: 100vh; }
+.s-soda .copy { position: absolute; left: 9vw; top: 50%; transform: translateY(-40%); width: 25vw; }
+.s-soda h2 { font: 900 clamp(56px, 5.6vw, 112px)/.95 Roboto, sans-serif; letter-spacing: -.045em; }
+.s-soda p { margin-top: 36px; font-size: clamp(17px, 1.2vw, 21px); line-height: 1.75; color: var(--stone); }
+.shelf { position: absolute; left: 37vw; right: 5vw; top: calc(var(--head) + 16vh); display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.6vw; align-items: end; }
+.can { position: relative; display: grid; justify-items: center; cursor: pointer; border: 0; background: none; text-align: center; }
+.can .body { position: relative; display: flex; align-items: flex-end; justify-content: center; transform-origin: 50% 100%; will-change: transform; }
+.can img { height: 37vh; width: auto; display: block; transition: transform .5s var(--out); filter: drop-shadow(0 18px 18px rgba(0,0,0,.5)); }
+.can .contact { position: absolute; left: 50%; bottom: -6px; width: 120%; height: 18px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.7), rgba(0,0,0,0)); }
+.can:hover img, .can:focus-visible img { transform: translateY(-14px); }
+.can .cap { padding-top: 26px; display: grid; gap: 8px; }
+.can .cap b { font: 500 15px/1.2 Roboto, sans-serif; color: var(--stone); transition: color .3s ease; }
+.can .cap i { font: 500 11px/1 "Roboto Mono", monospace; font-style: normal; letter-spacing: .12em; color: var(--mute); }
+.can:hover .cap b, .can:focus-visible .cap b { color: var(--paper); }
+.can:focus-visible { outline: none; } .can:focus-visible .cap b { text-decoration: underline 2px var(--red); text-underline-offset: 6px; }
+
+/* ---------- 3. closing ---------- */
+.s-close .inner { position: absolute; inset: var(--head) 9vw 0; display: grid; align-content: center; justify-items: center; text-align: center; }
+.s-close h2 { font: 900 clamp(60px, 7vw, 140px)/1 Roboto, sans-serif; letter-spacing: -.045em; }
+.s-close h2 em { font: italic 400 1em/1.12 "Libre Baskerville", serif; letter-spacing: -.03em; }
+.s-close p { margin-top: 44px; font-size: clamp(18px, 1.3vw, 23px); line-height: 1.8; color: var(--stone); }
+
+/* ---------- pager ---------- */
+.pager { position: fixed; right: 40px; top: 50%; transform: translateY(-50%); z-index: 26; display: grid; gap: 10px; transition: opacity .6s ease; }
+.pager button { width: 22px; height: 18px; border: 0; background: none; cursor: pointer; display: grid; place-items: center end; }
+.pager button i { display: block; width: 10px; height: 2px; border-radius: 2px; background: rgba(251,251,251,.28); transition: width .5s var(--out), background-color .3s ease; }
+.pager button[aria-current] i { width: 22px; background: var(--paper); }
+.pager button:hover i { background: rgba(251,251,251,.7); }
+
+/* arrival: the header was already there on the brand page, the room fades up under it */
+.lamp, .floor, .s-floor .intro > * { opacity: 0; }
+.ready .lamp, .ready .floor { opacity: 1; transition: opacity 1.6s ease .2s; }
+.ready .s-floor .intro > * { opacity: 1; transition: opacity 1s ease calc(.9s + var(--d, 0) * .12s); }
+.opened .s-floor .intro > * { transition-delay: 0s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ln > span, .fx { transform: none !important; opacity: 1; transition: none !important; }
+  .lamp, .floor, .s-floor .intro > * { opacity: 1; transition: none; }
+}
+</style>
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><symbol id="logo" viewBox="0 0 264.998 106" overflow="visible">{{LOGO_PATHS}}</symbol></defs>
+</svg>
+
+<header>
+  <a class="logo" href="BLUFF_3안_Brand.html" aria-label="BLUFF 브랜드 페이지"><svg viewBox="0 0 264.998 106"><use href="#logo" fill="#fbfbfb"/></svg></a>
+  <nav aria-label="Primary"><a href="BLUFF_3안_Brand.html">Brand</a><a href="#top" aria-current="page" data-top>Products</a><span>Popup AR</span></nav>
+  <p class="lang"><b>KR</b><span aria-hidden="true">/</span><span>EN</span></p>
+</header>
+
+<div id="track">
+<main class="screen s-floor on" id="top" aria-label="QUAZIC CHIPS">
+  <div class="lamp" aria-hidden="true"></div>
+  <div class="floor" aria-hidden="true"></div>
+  <div class="intro">
+    <h1><span class="ln"><span>Unfold</span></span><span class="ln" style="--d:1"><span>the <em>bluff.</em></span></span></h1>
+    <div class="picks" style="--d:2" role="group" aria-label="펼칠 맛 고르기">{{PICKS}}</div>
+  </div>
+</main>
+
+<section class="screen s-soda" aria-label="BLUFF SODA">
+  <div class="lamp" aria-hidden="true"></div>
+  <div class="copy">
+    <h2><span class="ln"><span>BLUFF</span></span><span class="ln" style="--d:1"><span>SODA</span></span></h2>
+    <p class="kr fx" style="--d:3">다섯 가지 맛, 모두 355 ml.<br>열량 0 kcal, 나트륨 0 mg.</p>
+  </div>
+  <div class="shelf" id="shelf">{{CANS}}</div>
+</section>
+
+<section class="screen s-close" aria-label="The creases stay.">
+  <div class="inner">
+    <h2><span class="ln"><span>Smooth it out.</span></span><span class="ln" style="--d:1"><span><em>The creases stay.</em></span></span></h2>
+    <p class="kr fx" style="--d:3">매운맛도, 짠맛도, 칼로리도 없습니다.<br>펼쳐 봐도 남는 건 향과 허세뿐입니다.</p>
+  </div>
+</section>
+{{FOOTER}}
+</div>
+
+<aside class="sheet" id="sheet" aria-label="펼친 상품" aria-hidden="true">
+  <p class="kind fx">QUAZIC CHIPS</p>
+  <h2><span class="ln"><span data-f="flavor"></span></span></h2>
+  <p class="claim kr fx" style="--d:1" data-f="claim"></p>
+  <div class="big fx" style="--d:2"><b data-f="big"></b><span class="kr" data-f="bigLab"></span></div>
+  <dl class="kr fx" style="--d:4"><dt>용량</dt><dd>60 g</dd><dt>가격</dt><dd>&#8361;2,900</dd><dt>원작</dt><dd data-f="work"></dd></dl>
+  <div class="acts fx" style="--d:5"><button class="next" type="button" id="next"></button></div>
+</aside>
+
+<nav class="pager" id="pager" aria-label="화면 이동"></nav>
+<canvas id="paper" aria-hidden="true"></canvas>
+<p class="sr" aria-live="polite" id="live"></p>
+
+<script>window.PRODUCTS = {{PRODUCTS}};</script>
+<script type="module">
+import * as THREE from 'three';
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const P = window.PRODUCTS, live = document.getElementById('live'), sheet = document.getElementById('sheet');
+const HEAD = 80;
+
+// ---------- WebGL: one orthographic scene in page pixels (y down in the code, flipped for three) ----------
+const canvas = document.getElementById('paper');
+const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+const scene = new THREE.Scene();
+let W = innerWidth, H = innerHeight;
+const camera = new THREE.OrthographicCamera(0, W, 0, -H, -3000, 3000);
+renderer.setSize(W, H);
+let offset = 0, deep = 0;
+const floorY = () => (deep + 1) * H - 10;
+
+// the unfolded bag: as tall as the room allows, in the bag's own proportions
+const BH = Math.min(H * .66, 760), BW = BH * P[0].bw / P[0].bh;
+const R = Math.sqrt(BW * BH) * .13;
+
+const loader = new THREE.TextureLoader();
+const tex = src => { const t = loader.load(src); t.anisotropy = 4; return t; };
+const paintTex = P.map(p => tex(p.paint)), bagTex = P.map(p => tex(p.bag));
+
+// the outside of the ball is the painting; as it opens the print turns into the bag, and the bag's own cut-out edges appear
+const vert = `varying vec2 vUv; varying vec3 vN;
+void main() { vUv = uv; vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const frag = `uniform sampler2D mapA, mapB; uniform float mixAB, back; varying vec2 vUv; varying vec3 vN;
+void main() {
+  vec4 b = texture2D(mapB, vUv);
+  if (mix(1.0, b.a, smoothstep(.35, .7, mixAB)) < .5) discard;
+  vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+  float lit = .36 + .8 * max(dot(n, normalize(vec3(-.3, .5, .81))), 0.0) + .18 * max(dot(n, normalize(vec3(.6, -.4, .3))), 0.0);
+  vec3 col = back > .5 ? vec3(.913, .894, .847) : mix(texture2D(mapA, vUv).rgb, b.rgb, mixAB);
+  gl_FragColor = vec4(col * lit * vec3(1.0, .985, .96), 1.0);
+}`;
+
+const shadowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(0,0,0,.65)'); r.addColorStop(.5, 'rgba(0,0,0,.28)'); r.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+
+// ---------- noise for the creases (same as the brand page, so the same seed gives the same ball) ----------
+function hash(x, y, z) { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); }
+function vnoise(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf);
+  const L = (a, b, t) => a + (b - a) * t, h = (i, j, k) => hash(xi + i, yi + j, zi + k);
+  return L(L(L(h(0,0,0), h(1,0,0), u), L(h(0,1,0), h(1,1,0), u), v), L(L(h(0,0,1), h(1,0,1), u), L(h(0,1,1), h(1,1,1), u), v), w);
+}
+const ridged = (x, y, z) => { let s = 0, a = .5, f = 1; for (let o = 0; o < 3; o++) { s += a * (1 - Math.abs(vnoise(x * f, y * f, z * f) * 2 - 1)); a *= .5; f *= 2.1; } return s; };
+
+// ---------- the three balls ----------
+const balls = [];
+function makeBall(i, st) {
+  const w = BW, h = BH, aspect = w / h, seed = st ? st.seed : Math.random() * 100;
+  const nx = Math.round(aspect >= 1 ? 64 : 64 * aspect), ny = Math.round(aspect >= 1 ? 64 / aspect : 64), N = (nx + 1) * (ny + 1);
+  const flat = new Float32Array(N * 3), ball = new Float32Array(N * 3), lag = new Float32Array(N), crease = new Float32Array(N), uv = new Float32Array(N * 2);
+  for (let j = 0, k = 0; j <= ny; j++) for (let i2 = 0; i2 <= nx; i2++, k++) {
+    const u = i2 / nx, v = j / ny;
+    flat[k * 3] = (u - .5) * w; flat[k * 3 + 1] = (v - .5) * h;
+    uv[k * 2] = u; uv[k * 2 + 1] = v;
+    let px = (u - .5) * 2, py = (v - .5) * 2, pz = 1 - Math.abs(px) - Math.abs(py);
+    if (pz < 0) { const ox = px; px = Math.sign(ox) * (1 - Math.abs(py)); py = Math.sign(py) * (1 - Math.abs(ox)); }
+    let l = Math.hypot(px, py, pz) || 1; px /= l; py /= l; pz /= l;
+    px += (vnoise(u * 5 + seed, v * 5, 1.3) - .5) * 1.1; py += (vnoise(u * 5 + seed, v * 5, 7.1) - .5) * 1.1; pz += (vnoise(u * 5 + seed, v * 5, 13.7) - .5) * 1.1;
+    l = Math.hypot(px, py, pz) || 1; px /= l; py /= l; pz /= l;
+    const r = R * (.58 + .62 * ridged(px * 3.4 + seed, py * 3.4, pz * 3.4));
+    ball[k * 3] = px * r; ball[k * 3 + 1] = py * r; ball[k * 3 + 2] = pz * r;
+    lag[k] = (1 - Math.min(1, Math.hypot(u - .5, v - .5) * 1.6)) * .38;
+    crease[k] = ridged(u * 12 + seed, v * 12 * (h / w), seed) - .45;
+  }
+  const T = nx * ny * 6, pos = new Float32Array(T * 3), tuv = new Float32Array(T * 2), idxs = new Uint32Array(T);
+  let t = 0;
+  for (let j = 0; j < ny; j++) for (let i2 = 0; i2 < nx; i2++) {
+    const a = j * (nx + 1) + i2, b = a + 1, c = a + nx + 1, d = c + 1;
+    for (const q of [a, b, d, a, d, c]) { idxs[t] = q; tuv[t * 2] = uv[q * 2]; tuv[t * 2 + 1] = uv[q * 2 + 1]; t++; }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(tuv, 2));
+  const mixAB = {value: 0};
+  const mat = (back, side) => new THREE.ShaderMaterial({vertexShader: vert, fragmentShader: frag, side,
+    uniforms: {mapA: {value: paintTex[i]}, mapB: {value: bagTex[i]}, mixAB, back: {value: back}}});
+  const group = new THREE.Group(); group.add(new THREE.Mesh(geo, mat(0, THREE.FrontSide)), new THREE.Mesh(geo, mat(1, THREE.BackSide)));
+  scene.add(group);
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({map: shadowTex, transparent: true, depthWrite: false, opacity: 0}));
+  scene.add(sh);
+  const b = {i, group, geo, pos, idxs, flat, ball, lag, crease, grid: new Float32Array(N * 3), N, sh, mixAB, seed, scar: 0, e: 1, hover: 0, sc: 1,
+    x: 0, y: 0, vx: 0, vy: 0, ang: 0, tilt: 0, spin: 0, phase: 'free'};
+  shape(b, 1);
+  balls.push(b);
+  return b;
+}
+// e = 1 is the ball, e = 0 the flat sheet; scar keeps the creases once a sheet has been crumpled and opened again
+function shape(b, e) {
+  const {flat, ball, lag, crease, grid, N, pos, idxs, geo, scar} = b;
+  for (let k = 0; k < N; k++) {
+    let s = Math.min(1, Math.max(0, e * 1.38 - lag[k])); s = s * s * (3 - 2 * s);
+    const wr = Math.sin(Math.PI * s) * R * 1.4 * crease[k] + scar * crease[k] * R * .36;
+    const k3 = k * 3;
+    grid[k3] = flat[k3] + (ball[k3] - flat[k3]) * s;
+    grid[k3 + 1] = flat[k3 + 1] + (ball[k3 + 1] - flat[k3 + 1]) * s;
+    grid[k3 + 2] = ball[k3 + 2] * s + wr;
+  }
+  for (let t = 0; t < idxs.length; t++) { const q = idxs[t] * 3; pos[t * 3] = grid[q]; pos[t * 3 + 1] = grid[q + 1]; pos[t * 3 + 2] = grid[q + 2]; }
+  geo.attributes.position.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere();
+}
+
+// ---------- arrival: the balls dropped off the brand page keep falling into this one ----------
+let handoff = null;
+try { const s = JSON.parse(sessionStorage.getItem('bluff3.handoff') || 'null'); sessionStorage.removeItem('bluff3.handoff');
+  if (s && Date.now() - s.t < 15000) handoff = s; } catch (e) {}
+P.forEach((p, i) => {
+  const st = handoff && handoff.balls.find(h => h.key === p.key);
+  const b = makeBall(i, st);
+  const slot = (i + .5) / P.length;
+  b.x = Math.min(W - R * 1.2, Math.max(R * 1.2, (st ? st.x : .25 + slot * .5) * W));
+  b.vx = st ? st.vx * .5 : (Math.random() - .5) * 240;
+  b.ang = st ? st.ang : Math.random() * 6; b.spin = st ? st.spin : 0;
+  // the handed-over balls are already falling; the ones never crumpled on the brand page follow a beat later
+  b.y = -R * 1.4 - (st ? i * R * .5 : R * 3 + i * R * 1.6);
+  b.vy = st ? 900 : 300;
+  b.group.position.set(b.x, -b.y, 320);
+});
+document.documentElement.classList.toggle('handoff', !!handoff);
+
+// ---------- open / fold ----------
+let openB = null;
+const target = () => ({x: W * .33, y: offset + (H + HEAD) / 2 - H * .02});
+const unwrap = a => a - Math.round(a / (Math.PI * 2)) * Math.PI * 2;
+function open(b) {
+  if (b.phase !== 'free') return;
+  if (openB) fold(openB, true);
+  openB = b; b.phase = 'opening'; b.t0 = performance.now();
+  b.from = {x: b.x, y: b.y - offset, ang: unwrap(b.ang), tilt: unwrap(b.tilt)};
+  fillSheet(b.i);
+  document.body.classList.add('opened');
+  picks.forEach((p, k) => p.setAttribute('aria-pressed', String(k === b.i)));
+  live.textContent = `${P[b.i].work}을(를) 펼쳤습니다. QUAZIC CHIPS ${P[b.i].flavor}.`;
+}
+function fold(b, swap) {
+  if (b.phase !== 'opening' && b.phase !== 'shown') return;
+  b.phase = 'folding'; b.t0 = performance.now(); b.fromE = b.e;
+  if (openB === b) openB = null;
+  if (!swap) { sheet.classList.remove('on'); sheet.setAttribute('aria-hidden', 'true'); document.body.classList.remove('opened');
+    picks.forEach(p => p.setAttribute('aria-pressed', 'false')); live.textContent = '다시 구겼습니다.'; }
+}
+const sheetF = [...sheet.querySelectorAll('[data-f]')];
+function fillSheet(i) {
+  const p = P[i];
+  sheet.classList.remove('on');
+  const put = () => { sheetF.forEach(f => f.textContent = p[f.dataset.f]);
+    document.getElementById('next').textContent = `다음: ${P[(i + 1) % P.length].flavor}`;
+    sheet.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => requestAnimationFrame(() => sheet.classList.add('on'))); };
+  setTimeout(put, sheet.textContent.trim() && document.body.classList.contains('opened') ? 380 : 120);
+}
+document.getElementById('next').addEventListener('click', () => { if (!openB) return; const n = balls[(openB.i + 1) % balls.length]; fold(openB, true);
+  if (n.phase === 'free') open(n); else setTimeout(() => open(n), 900); });
+const picks = [...document.querySelectorAll('.picks button')];
+picks.forEach((p, k) => p.addEventListener('click', e => { e.stopPropagation(); const b = balls[k];
+  if (b === openB) return;
+  if (b.phase === 'free') open(b); }));
+
+const hit = (e) => balls.find(b => b.phase === 'free' && Math.hypot(b.x - e.clientX, b.y - (e.clientY + offset)) < R * 1.25);
+addEventListener('pointerdown', e => {
+  if (e.target.closest('button, a, input, .sheet')) return;
+  const b = hit(e);
+  if (b && !anim) open(b);                                    // the open sheet is only put away by scrolling on
+});
+let px = 0, py = 0;
+addEventListener('pointermove', e => { px = e.clientX / innerWidth - .5; py = e.clientY / innerHeight - .5;
+  const b = e.target.closest('button, a, input, .sheet') ? null : hit(e);
+  balls.forEach(x => x.hover = x === b ? 1 : 0);
+  document.body.style.cursor = b ? 'pointer' : ''; }, {passive: true});
+
+// ---------- physics ----------
+const G = 2600, REST = .36, AIR = .02;
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 4);
+function step(dt, now) {
+  const fy = floorY();
+  for (const b of balls) {
+    if (b.phase === 'opening' || b.phase === 'shown') {
+      const k = b.phase === 'shown' ? 1 : Math.min(1, (now - b.t0) / (reduce ? 1 : 1500));
+      const tg = target(), m = easeOut(Math.min(1, k * 1.5));                    // it rises first, then the sheet spreads
+      b.x = b.from.x + (tg.x - b.from.x) * m; b.y = offset + b.from.y + (tg.y - offset - b.from.y) * m;
+      b.ang = b.from.ang * (1 - m); b.tilt = b.from.tilt * (1 - m);
+      b.e = 1 - easeIO(Math.min(1, Math.max(0, (k - .12) / .88)));
+      b.scar = Math.max(b.scar, 1 - b.e);
+      b.mixAB.value = Math.min(1, Math.max(0, (.75 - b.e) / .5));
+      shape(b, b.e);
+      if (k >= 1 && b.phase === 'opening') { b.phase = 'shown'; b.e = 0; }
+      // the sheet leans a little towards the visitor
+      b.ry = (b.ry || 0) + ((b.phase === 'shown' && !reduce ? px * .22 : 0) - (b.ry || 0)) * Math.min(1, dt * 4);
+      b.rx = (b.rx || 0) + ((b.phase === 'shown' && !reduce ? py * .14 : 0) - (b.rx || 0)) * Math.min(1, dt * 4);
+      continue;
+    }
+    if (b.phase === 'folding') {
+      const k = Math.min(1, (now - b.t0) / (reduce ? 1 : 850));
+      b.e = b.fromE + (1 - b.fromE) * easeIO(k);
+      b.mixAB.value = Math.min(1, Math.max(0, (.75 - b.e) / .5));
+      b.rx *= .9; b.ry *= .9;
+      shape(b, b.e);
+      if (k >= 1) { b.phase = 'free'; b.vx = (Math.random() < .5 ? -1 : 1) * (260 + Math.random() * 320); b.vy = -380 - Math.random() * 160; b.spin = (Math.random() - .5) * 6; b.rx = b.ry = 0; }
+      continue;
+    }
+    const r = R * 1.12;
+    b.vy += G * dt; b.vx *= 1 - AIR * dt;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.y + r >= fy) {
+      b.y = fy - r;
+      if (b.vy > 0) b.vy = Math.abs(b.vy) > 120 ? -b.vy * REST : 0;
+      b.vx += Math.sin(b.ang * 3 + b.seed) * 180 * dt;
+      b.vx *= 1 - 1.1 * dt;
+      if (Math.abs(b.vx) < 6) b.vx = 0;
+    }
+    if (b.x - r < 0) { b.x = r; b.vx = Math.abs(b.vx) * .55; }
+    if (b.x + r > W) { b.x = W - r; b.vx = -Math.abs(b.vx) * .55; }
+    b.ang -= (b.vx / r) * dt + b.spin * dt; b.spin *= 1 - 2 * dt;
+    b.tilt += (b.vy / r) * dt * .15;
+  }
+  for (let a = 0; a < balls.length; a++) for (let c = a + 1; c < balls.length; c++) {
+    const A = balls[a], B = balls[c]; if (A.phase !== 'free' || B.phase !== 'free') continue;
+    const dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy), min = R * 2.1;
+    if (d > 0 && d < min) { const nx = dx / d, ny = dy / d, o = (min - d) / 2;
+      A.x -= nx * o; A.y -= ny * o; B.x += nx * o; B.y += ny * o;
+      const rel = (B.vx - A.vx) * nx + (B.vy - A.vy) * ny;
+      if (rel < 0) { const j = -1.4 * rel / 2; A.vx -= j * nx; A.vy -= j * ny; B.vx += j * nx; B.vy += j * ny; } }
+  }
+  for (const b of balls) {
+    b.sc += ((b.phase === 'free' ? 1 + b.hover * .06 : 1) - b.sc) * Math.min(1, dt * 10);
+    const flatish = b.phase !== 'free';
+    b.group.position.set(b.x, -b.y, flatish ? 600 : 320);
+    b.group.rotation.set(b.tilt + (b.rx || 0), b.ry || 0, b.ang);
+    b.group.scale.setScalar(b.sc);
+    const r = R * 1.12, gap = Math.max(0, fy - (b.y + r)), k = Math.max(0, 1 - gap / 400);
+    b.sh.position.set(b.x, -(fy + 2), 100); b.sh.scale.set(r * 2.6 * (.6 + .4 * k), r * .5 * (.6 + .4 * k), 1);
+    b.sh.material.opacity = b.phase === 'free' ? .85 * k : 0;
+  }
+}
+
+// ---------- soda: five cans drop onto the shelf and stand up ----------
+const cans = [...document.querySelectorAll('.can')].map((el, i) => ({el, body: el.querySelector('.body'), y: 0, vy: 0, a: 0, va: 0, start: 0, live: false, i}));
+let cansDropped = false;
+function dropCans(now) {
+  if (cansDropped) return; cansDropped = true;
+  cans.forEach(c => { c.y = reduce ? 0 : -H * 1.05; c.vy = 0; c.a = (Math.random() - .5) * 18; c.va = 0; c.start = now + 250 + c.i * 110; c.live = !reduce; place(c); });
+}
+function place(c) { c.body.style.transform = `translate3d(0, ${c.y.toFixed(1)}px, 0) rotate(${c.a.toFixed(2)}deg)`; }
+function stepCans(dt, now) {
+  for (const c of cans) {
+    if (!c.live || now < c.start) continue;
+    c.vy += 5200 * dt; c.y += c.vy * dt;
+    if (c.y >= 0) { c.y = 0;
+      if (c.vy > 260) { c.vy = -c.vy * .26; c.va += (Math.random() - .5) * 260; } else c.vy = 0; }
+    // a can rocks on its rim and settles upright
+    c.va += (-c.a * 160 - c.va * 9) * dt; c.a += c.va * dt;
+    if (c.y === 0 && c.vy === 0 && Math.abs(c.a) < .05 && Math.abs(c.va) < .5) { c.a = 0; c.live = false; }
+    place(c);
+  }
+}
+cans.forEach(c => c.el.addEventListener('click', () => {           // tap a can: it hops and lands on its feet again
+  if (reduce) return; c.vy = -1100; c.va += (Math.random() < .5 ? -1 : 1) * 220; c.live = true; c.start = 0;
+}));
+cans.forEach(c => { c.body.style.transform = `translate3d(0, ${-H * 1.05}px, 0)`; });
+
+// ---------- loop ----------
+let last = performance.now(), acc = 0;
+renderer.setAnimationLoop(now => { acc += Math.min(.25, (now - last) / 1000); last = now;
+  stepPage(now);
+  while (acc >= 1 / 60) { step(1 / 60, now); stepCans(1 / 60, now); acc -= 1 / 60; }
+  camera.top = -offset; camera.bottom = -offset - H; camera.updateProjectionMatrix();
+  renderer.render(scene, camera); });
+
+// ---------- one screen at a time (same rules as the brand page) ----------
+const track = document.getElementById('track'), screens = [...document.querySelectorAll('.screen')], pager = document.getElementById('pager');
+const footer = document.getElementById('siteFooter');
+const LAST = screens.length;
+const stopAt = n => n < LAST ? n * H : (LAST - 1) * H + footer.offsetHeight;
+let cur = 0, anim = null, lockUntil = 0;
+function placeTrack() { track.style.transform = `translate3d(0, ${(-offset).toFixed(2)}px, 0)`; }
+pager.innerHTML = screens.map(s => `<button type="button" aria-label="${s.getAttribute('aria-label')}"><i></i></button>`).join('');
+const dots = [...pager.children];
+dots.forEach((d, i) => d.addEventListener('click', () => go(i)));
+function mark() { const s = Math.min(cur, LAST - 1);
+  screens.forEach((el, i) => el.classList.toggle('on', i === s)); dots.forEach((d, i) => d.toggleAttribute('aria-current', i === s)); }
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function go(n) {
+  if (anim) return;
+  n = Math.max(0, Math.min(LAST, n)); if (n === cur) return;
+  if (openB) fold(openB);
+  if (Math.min(n, LAST - 1) > deep) { deep = Math.min(n, LAST - 1); for (const b of balls) if (b.phase === 'free') { b.vx += (Math.random() - .5) * 160; b.vy -= 120; } }
+  cur = n; mark();
+  if (Math.min(n, LAST - 1) === 1) dropCans(performance.now() + (reduce ? 0 : 500));
+  anim = {from: offset, to: stopAt(n), t0: performance.now(), dur: reduce ? 1 : (n === LAST ? 900 : 1150)};
+}
+function stepPage(now) {
+  if (!anim) return;
+  const k = Math.min(1, (now - anim.t0) / anim.dur);
+  offset = anim.from + (anim.to - anim.from) * ease(k); placeTrack();
+  if (k >= 1) { anim = null; lockUntil = now + 380; }
+}
+addEventListener('wheel', e => { e.preventDefault();
+  if (e.target.closest && e.target.closest('.sheet')) return;
+  if (anim || performance.now() < lockUntil || Math.abs(e.deltaY) < 8) return;
+  if (openB) { fold(openB); lockUntil = performance.now() + 600; return; }  // the first turn of the wheel puts the open sheet away
+  go(cur + (e.deltaY > 0 ? 1 : -1)); }, {passive: false});
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(cur + 1); }
+  if (['ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(cur - 1); }
+  if (e.key === 'Home') go(0); if (e.key === 'End') go(LAST - 1);
+});
+document.querySelectorAll('[data-top]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(0); }));
+addEventListener('resize', () => { W = innerWidth; H = innerHeight; renderer.setSize(W, H); camera.right = W; offset = stopAt(cur); placeTrack(); });
+mark(); placeTrack();
+requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.add('ready')));
+window.__bluff3p = {balls, open, fold, go, cans};
+</script>
+</body>
+</html>
