@@ -123,13 +123,19 @@ header .lang b { color: var(--paper); font-weight: 500; }
 .boot.error { color: var(--stone); font: 500 15px/1.7 "Noto Sans KR", sans-serif; letter-spacing: 0; text-align: center; }
 
 /* ---------- walking: first person inside the popup ---------- */
-.walk-cta { margin-top: 40px; align-self: flex-start; display: inline-flex; align-items: center; gap: 16px; padding: 15px 22px 15px 24px; border-radius: 999px;
-  background: var(--paper); color: var(--ink); font: 700 15px/1 "Noto Sans KR", sans-serif; transition: background-color .25s ease, color .25s ease, scale .2s var(--out); }
-.walk-cta:hover { background: var(--red); color: var(--paper); }
-.walk-cta:active { scale: .98; }
-.walk-cta .keys { display: inline-flex; gap: 3px; }
-.key { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 5px; background: rgba(12,12,12,.12); font: 700 11px/1 "Roboto Mono", monospace; }
-.walk-cta:hover .key { background: rgba(251,251,251,.2); }
+/* every button here is type alone: the line underneath draws in on hover, as in the header */
+.walk-cta, .gate .go, .gate .back, .card .close, .hud .leave { position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 8px 0; border-radius: 0; background: none;
+  font: 700 16px/1 "Noto Sans KR", sans-serif; color: var(--paper); transition: color .3s ease; }
+.walk-cta::after, .gate .go::after, .gate .back::after, .card .close::after, .hud .leave::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor;
+  transform: scaleX(0); transform-origin: 0 50%; transition: transform .5s var(--out); }
+.walk-cta:hover::after, .gate .go:hover::after, .gate .back:hover::after, .card .close:hover::after, .hud .leave:hover::after,
+.walk-cta:focus-visible::after, .gate .go:focus-visible::after, .gate .back:focus-visible::after, .card .close:focus-visible::after, .hud .leave:focus-visible::after { transform: scaleX(1); }
+.walk-cta { margin-top: 40px; align-self: flex-start; font-size: 17px; }
+.walk-cta::after { transform: scaleX(.3); }
+.btn-key { font: 500 12px/1 "Roboto Mono", monospace; letter-spacing: .06em; color: var(--mute); }
+/* the underline already marks keyboard focus on these, so no box outline (it showed when the walk dialog focused its button) */
+.walk-cta:focus-visible, .gate .go:focus-visible, .gate .back:focus-visible, .card .close:focus-visible, .hud .leave:focus-visible, .walk-cta:focus, .gate .go:focus { outline: none; }
+.key { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 5px; background: rgba(251,251,251,.1); font: 700 11px/1 "Roboto Mono", monospace; }
 .walking .intro, .walking .route, .walking .hint, .walking .zone, .walking .scrim { opacity: 0 !important; pointer-events: none !important; }
 .walking .chip { visibility: hidden; }
 .walking #site { cursor: crosshair; }
@@ -141,14 +147,11 @@ header .lang b { color: var(--paper); font-weight: 500; }
 .hud .prompt { position: absolute; left: 50%; bottom: 64px; translate: -50% 12px; display: flex; align-items: center; gap: 14px; padding: 12px 20px 12px 12px; border-radius: 999px;
   background: rgba(12,12,12,.82); font: 500 15px/1 "Noto Sans KR", sans-serif; opacity: 0; transition: opacity .3s ease, translate .4s var(--out); white-space: nowrap; }
 .hud .prompt.on { opacity: 1; translate: -50% 0; }
-.hud .prompt .key { min-width: 30px; height: 30px; background: var(--paper); color: var(--ink); font-size: 13px; border-radius: 50%; }
+.hud .prompt .key { width: 30px; min-width: 30px; height: 30px; padding: 0; background: var(--paper); color: var(--ink); font: 700 13px/1 "Roboto Mono", monospace; border-radius: 50%; }
 .hud .prompt b { font-weight: 700; }
 .hud .prompt i { font: 500 11px/1 "Roboto Mono", monospace; font-style: normal; letter-spacing: .08em; color: var(--mute); }
 .hud .map { position: absolute; right: 56px; bottom: 48px; width: 276px; height: 156px; border-radius: 8px; background: rgba(12,12,12,.78); box-shadow: 0 12px 30px rgba(0,0,0,.4); }
-.hud .leave { position: absolute; left: 56px; bottom: 48px; pointer-events: auto; display: inline-flex; align-items: center; gap: 12px; padding: 10px 16px 10px 10px; border-radius: 999px;
-  background: rgba(12,12,12,.78); font: 500 14px/1 "Noto Sans KR", sans-serif; color: var(--stone); transition: color .25s ease, background-color .25s ease; }
-.hud .leave:hover { color: var(--paper); background: rgba(40,40,40,.9); }
-.hud .leave .key { background: rgba(251,251,251,.14); color: var(--paper); }
+.hud .leave { position: absolute; left: 56px; bottom: 48px; pointer-events: auto; font-size: 14px; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
 .hud .help { position: absolute; left: 50%; top: calc(var(--head) + 18px); translate: -50% 0; font: 500 12px/1 "Noto Sans KR", sans-serif; color: var(--mute); }
 
 .gate { position: fixed; inset: 0; z-index: 14; display: grid; place-items: center; background: rgba(12,12,12,.5); opacity: 0; pointer-events: none; transition: opacity .4s ease; }
@@ -160,12 +163,8 @@ header .lang b { color: var(--paper); font-weight: 500; }
 .gate dt { display: flex; gap: 4px; }
 .gate dt .key { background: rgba(251,251,251,.1); color: var(--paper); min-width: 26px; height: 26px; }
 .gate dd { font-size: 14px; color: var(--stone); }
-.gate .acts { margin-top: 36px; display: flex; align-items: center; gap: 24px; }
-.gate .go { padding: 15px 26px; border-radius: 999px; background: var(--paper); color: var(--ink); font: 700 15px/1 "Noto Sans KR", sans-serif; transition: background-color .25s ease, color .25s ease, scale .2s var(--out); }
-.gate .go:hover { background: var(--red); color: var(--paper); }
-.gate .go:active { scale: .98; }
-.gate .back { font: 500 14px/1 "Noto Sans KR", sans-serif; color: var(--mute); transition: color .25s ease; }
-.gate .back:hover { color: var(--paper); }
+.gate .acts { margin-top: 36px; display: flex; align-items: center; gap: 36px; }
+.gate .back { font-weight: 500; font-size: 14px; color: var(--mute); } .gate .back:hover { color: var(--paper); }
 
 .card { position: fixed; z-index: 13; right: 64px; top: 50%; width: min(400px, calc(100vw - 32px)); padding: 36px; border-radius: 12px; background: rgba(14,14,14,.93); box-shadow: 0 30px 80px rgba(0,0,0,.5);
   opacity: 0; translate: 24px -50%; pointer-events: none; transition: opacity .35s ease, translate .6s var(--out); }
@@ -176,10 +175,8 @@ header .lang b { color: var(--paper); font-weight: 500; }
 .card .en { margin-top: 8px; font: 500 12px/1 "Roboto Mono", monospace; letter-spacing: .12em; color: var(--mute); }
 .card .what { margin-top: 24px; font-size: 16px; line-height: 1.8; color: var(--stone); }
 .card .tag { margin-top: 18px; font: 500 13px/1 "Noto Sans KR", sans-serif; color: var(--paper); }
+.card .close { margin-top: 28px; font-size: 15px; }
 .card .note { margin-top: 28px; padding-top: 0; font-size: 13px; line-height: 1.6; color: var(--mute); }
-.card .close { margin-top: 28px; display: inline-flex; align-items: center; gap: 10px; font: 500 14px/1 "Noto Sans KR", sans-serif; color: var(--stone); transition: color .25s ease; }
-.card .close:hover { color: var(--paper); }
-.card .close .key { background: rgba(251,251,251,.14); color: var(--paper); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01s !important; transition-delay: 0s !important; }
@@ -208,7 +205,7 @@ header .lang b { color: var(--paper); font-weight: 500; }
   <h1>BLUFF<br>CASE FILE.</h1>
   <p class="claim" style="--d:1">세 개의 현장, 하나의 사건 파일.</p>
   <p class="motto" lang="en" style="--d:2">Collect the evidence. Keep the taste.</p>
-  <button class="walk-cta" type="button" id="walkBtn" style="--d:3">1인칭으로 걷기<span class="keys" aria-hidden="true"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span></button>
+  <button class="walk-cta" type="button" id="walkBtn" style="--d:3">1인칭으로 걷기</button>
   <dl class="facts kr" style="--d:3"><dt>공간</dt><dd>1,125㎡</dd><dt>관람</dt><dd>1인 약 60분</dd><dt>미션</dt><dd>메인 6 + 보너스 3</dd></dl>
 </section>
 
@@ -224,7 +221,7 @@ header .lang b { color: var(--paper); font-weight: 500; }
   <span class="aim"></span>
   <p class="prompt" id="prompt"><span class="key">E</span><span><b id="promptName"></b></span><i id="promptId"></i></p>
   <canvas class="map" id="map" width="552" height="312"></canvas>
-  <button class="leave" type="button" id="leave"><span class="key">Q</span>모형으로 돌아가기</button>
+  <button class="leave" type="button" id="leave"><span class="btn-key">Q</span>모형으로 돌아가기</button>
 </div>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
   <div class="panel">
@@ -699,7 +696,7 @@ function openCard(id) {
   card.style.cssText = `--pc:${c};--pt:${t}`;
   card.innerHTML = `<p class="meta"><span class="dot">${m[0]}</span><span>${Z.en} ${Z.name}</span></p><h3>${m[2]}</h3><p class="en">${m[3]}</p><p class="what kr">${m[4]}</p>
     <p class="tag">${m[6] ? '메인' : '보너스'} 미션, ${m[5]}분</p><p class="note kr">미션 체험은 팝업 현장에서만 할 수 있어요.</p>
-    <button class="close" type="button"><span class="key">E</span>닫고 계속 걷기</button>`;
+    <button class="close" type="button"><span class="btn-key">E</span>닫고 계속 걷기</button>`;
   card.querySelector('.close').addEventListener('click', () => closeCard(true));
   walk.card = id; card.classList.add('on'); prompt.classList.remove('on'); walk.keys.clear();
   if (document.pointerLockElement) document.exitPointerLock();
