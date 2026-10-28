@@ -1,4 +1,4 @@
-"""Build 웹_3안/BLUFF_3안_Brand.html from template.html.
+"""Build 웹_3안/index.html (the brand page, the site's front door) from template.html.
 
 Inlines the BLUFF logo paths and embeds the paintings as data URIs: WebGL cannot read image files
 when the page is opened straight from disk (file://), so the pictures travel inside the HTML.
@@ -34,5 +34,5 @@ html = html.replace('{{LOGO_PATHS}}', ''.join(paths)).replace('{{PAINTINGS}}', j
 footer = (HERE.parent.parent / '웹_2안' / 'shared' / 'footer.html').read_text(encoding='utf-8')
 footer = footer.replace('href="BLUFF_2안_Brand.html"', 'href="#top" data-top').replace('href="BLUFF_2안_Products.html"', 'href="BLUFF_3안_Products.html" data-products')
 html = html.replace('{{FOOTER}}', footer.replace('<span>Popup AR</span>', '<a href="BLUFF_3안_PopupAR.html">Popup AR</a>'))
-(HERE.parent / 'BLUFF_3안_Brand.html').write_text(html, encoding='utf-8')
+(HERE.parent / 'index.html').write_text(html, encoding='utf-8')
 print('built', sum(len(i['src']) for i in items) // 1024, 'KB of images')

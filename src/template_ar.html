@@ -194,8 +194,8 @@ header .lang b { color: var(--paper); font-weight: 500; }
 <div class="room" aria-hidden="true"></div>
 
 <header>
-  <a class="logo" href="BLUFF_3안_Brand.html" aria-label="BLUFF 브랜드 페이지"><svg viewBox="0 0 264.998 106"><use href="#logo" fill="#fbfbfb"/></svg></a>
-  <nav aria-label="Primary"><a href="BLUFF_3안_Brand.html">Brand</a><a href="BLUFF_3안_Products.html">Products</a><a href="#" aria-current="page">Popup AR</a></nav>
+  <a class="logo" href="index.html" aria-label="BLUFF 브랜드 페이지"><svg viewBox="0 0 264.998 106"><use href="#logo" fill="#fbfbfb"/></svg></a>
+  <nav aria-label="Primary"><a href="index.html">Brand</a><a href="BLUFF_3안_Products.html">Products</a><a href="#" aria-current="page">Popup AR</a></nav>
   <p class="lang"><b>KR</b><span aria-hidden="true">/</span><span>EN</span></p>
 </header>
 
@@ -297,8 +297,10 @@ const DESKS = {a: [12.2, 11.3], b: [25.8, 17.2], c: [39.6, 16.2]};
 
 // ---------- renderer: drawn only when something moves ----------
 const canvas = $('#site');
-const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true, powerPreference: 'high-performance'});
-renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+// on dense screens the pixels are already small enough to hide jagged edges, so multisampling is only paid for on ordinary ones
+const FULL = Math.min(2, devicePixelRatio);
+const renderer = new THREE.WebGLRenderer({canvas, antialias: FULL < 1.5, alpha: true, powerPreference: 'high-performance'});
+renderer.setPixelRatio(FULL);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -499,7 +501,7 @@ for (const [k, [x, z]] of Object.entries(DESKS)) { const b = document.createElem
 const v = new THREE.Vector3();
 function placeTags() {
   const walking = mode === 'walk', cp = camera.position;
-  for (const t of tags) { v.copy(t.p).project(camera);
+  for (const t of tags) { if (walking && !t.el.classList.contains('pin')) continue; v.copy(t.p).project(camera);
     if (walking && t.el.classList.contains('pin')) t.el.classList.toggle('show', v.z < 1 && t.el.dataset.zone === walk.key && Math.hypot(cp.x - t.p.x, cp.z - t.p.z) < 13);
     const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H;
     t.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -100%)`;
@@ -539,14 +541,25 @@ function stepFly(now) {
 // ---------- draw on demand: the GPU rests whenever nothing changes ----------
 let raf = 0, still = 0, lastT = 0;
 function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+// while the view moves it is drawn at a resolution the machine can hold at 60 fps; the moment it rests, one full-sharpness frame is drawn
+let motionDPR = Math.min(FULL, 1.25), dpr = FULL, slowRun = 0, fastRun = 0;
+function setDPR(r) { r = Math.round(r * 4) / 4; if (r === dpr) return; dpr = r; renderer.setPixelRatio(r); renderer.setSize(W, H, false); }
 function loop(now) {
-  raf = 0; const dt = Math.min(.05, (now - (lastT || now)) / 1000); lastT = now;
+  raf = 0;
+  if (lastT && now - lastT < 15.5) { kick(); return; }   // 144 Hz screens would otherwise draw the model 2.4 times as often as needed
+  const ms = lastT ? now - lastT : 16.7, dt = Math.min(.05, ms / 1000); lastT = now;
   const flying = fly ? stepFly(now) : glide ? stepGlide(now) : false;
   const walking = walk.on ? stepWalk(dt) : false;
   const moved = !fly && !glide && mode !== 'walk' && controls.update();
+  const active = flying || moved || walking || (walk.on && now - (walk.lookT || 0) < 150);
+  if (active || still === 0) {
+    if (ms > 24) { fastRun = 0; if (++slowRun > 8) { motionDPR = Math.max(.75, motionDPR - .25); slowRun = 0; } }
+    else if (ms < 18) { slowRun = 0; if (++fastRun > 90) { motionDPR = Math.min(FULL, motionDPR + .25); fastRun = 0; } }
+    setDPR(motionDPR);
+  } else setDPR(FULL);
   renderer.render(scene, camera); placeTags();
-  still = flying || moved || walking ? 0 : still + 1;
-  if (still < 3) kick();                           // a couple of extra frames let the damping settle, then the loop stops
+  still = active ? 0 : still + 1;
+  if (still < 3) kick(); else lastT = 0;            // a couple of extra frames let the damping settle (the last one sharp), then the loop stops
 }
 controls.addEventListener('change', kick); controls.addEventListener('start', kick);
 
@@ -606,7 +619,7 @@ canvas.addEventListener('pointermove', e => { if (mode === 'walk' || hoverQueued
 
 // ---------- first person: walk the U-shaped route at eye height ----------
 const EYE = 1.62, RAD = .32, START = {x: 1.45, z: 23.4, yaw: 0, pitch: -.03};
-const walk = {on: false, x: 0, z: 0, yaw: 0, pitch: 0, vx: 0, vz: 0, bob: 0, keys: new Set(), near: null, card: null, zone: '', drag: false};
+const walk = {mx: 0, mz: 0, myaw: 0, on: false, x: 0, z: 0, yaw: 0, pitch: 0, vx: 0, vz: 0, bob: 0, keys: new Set(), near: null, card: null, zone: '', drag: false};
 let glide = null, walkOnly = null, mapBase = null, lockOK = 'requestPointerLock' in canvas, dragOnly = false;
 const hud = $('#hud'), gate = $('#gate'), card = $('#card'), prompt = $('#prompt'), mapEl = $('#map'), mapG = mapEl.getContext('2d');
 SOLID.push([.5, 25, 2.4, 25.5], [42.4, 25, 44.3, 25.5]);          // the IN / OUT doors stay shut while walking
@@ -670,7 +683,8 @@ function stepWalk(dt) {
   const v = Math.hypot(walk.vx, walk.vz); walk.bob += dt * v * 3.1;
   camera.position.set(walk.x, EYE + (reduce ? 0 : Math.sin(walk.bob) * .028 * Math.min(1, v / 2.7)), walk.z);
   camera.rotation.set(walk.pitch, walk.yaw, 0, 'YXZ');
-  whereAmI(); nearest(); drawMap();
+  whereAmI(); nearest();
+  if (Math.abs(walk.x - walk.mx) + Math.abs(walk.z - walk.mz) + Math.abs(walk.yaw - walk.myaw) > .02) { walk.mx = walk.x; walk.mz = walk.z; walk.myaw = walk.yaw; drawMap(); }
   return v > .015 || !!(f || r);
 }
 function nearest() {
@@ -700,7 +714,7 @@ function lock() {
   try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => { dragOnly = true; gate.classList.remove('on'); }); } catch (e) { dragOnly = true; gate.classList.remove('on'); }
   setTimeout(() => { if (!document.pointerLockElement && walk.on) { dragOnly = true; gate.classList.remove('on'); } }, 700);   // no pointer lock here: drag to look instead
 }
-function look(mx, my) { if (!walk.on || walk.card) return; walk.yaw -= mx * .0022; walk.pitch = Math.max(-1.3, Math.min(1.3, walk.pitch - my * .0022)); kick(); }
+function look(mx, my) { if (!walk.on || walk.card) return; walk.lookT = performance.now(); walk.yaw -= mx * .0022; walk.pitch = Math.max(-1.3, Math.min(1.3, walk.pitch - my * .0022)); kick(); }
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement === canvas) { gate.classList.remove('on'); return; }
   if (walk.on && !walk.card && !dragOnly) { $('#gateTitle').textContent = '잠시 멈췄어요.'; $('#gateGo').textContent = '계속 걷기'; gate.classList.add('on'); walk.keys.clear(); }

@@ -46,7 +46,7 @@ cans = ''.join(f'''<button class="can" type="button" aria-label="BLUFF SODA {n},
 svg = (HERE / 'logo.svg').read_text(encoding='utf-8')
 paths = [re.sub(r'\s(fill|id)="[^"]*"', '', p) for p in re.findall(r'<path\b[^>]*/>', svg, flags=re.S)]
 footer = (ROOT / '웹_2안' / 'shared' / 'footer.html').read_text(encoding='utf-8')
-footer = footer.replace('href="BLUFF_2안_Brand.html"', 'href="BLUFF_3안_Brand.html"').replace('href="BLUFF_2안_Products.html"', 'href="#top" data-top')
+footer = footer.replace('href="BLUFF_2안_Brand.html"', 'href="index.html"').replace('href="BLUFF_2안_Products.html"', 'href="#top" data-top')
 
 html = (HERE / 'template_products.html').read_text(encoding='utf-8')
 html = (html.replace('{{LOGO_PATHS}}', ''.join(paths)).replace('{{FOOTER}}', footer.replace('<span>Popup AR</span>', '<a href="BLUFF_3안_PopupAR.html">Popup AR</a>'))
